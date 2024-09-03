@@ -210,6 +210,25 @@ jobs:
           selected_version: "14"
         working-directory: /
         run: |
+          packages_install=(
+            "gcc"
+            "g++"
+            "gcc-multilib"
+            "g++-multilib"
+            "gcc-${selected_version}"
+            "g++-${selected_version}"
+            "gcc-${selected_version}-multilib"
+            "g++-${selected_version}-multilib"
+          )
+          packages_extra=(
+            "gcc-aarch64-linux-gnu"
+            "gcc-${selected_version}-aarch64-linux-gnu"
+          )
+          sudo -E apt-get -y -qq update
+          sudo -E apt-get -y -qq install "${packages_install[@]}"
+          sudo -E apt-get -y -qq install "${packages_extra[@]}"
+          sudo -E systemctl daemon-reload
+
           # List GCC version
           ls /usr/bin/gcc-*
           ls /usr/bin/g++-*
@@ -230,8 +249,8 @@ jobs:
             if [ -f /usr/bin/gcc-ranlib-${version} ]; then
               sudo update-alternatives --install /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-${version} ${version}
             fi
-            if [ -f /usr/bin/g++-${version} ]; then
-              sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${version} ${version}
+            if [ -f /usr/bin/gcc-aarch64-linux-gnu-${version} ]; then
+              sudo update-alternatives --install /usr/bin/gcc-aarch64-linux-gnu gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu ${version}
             fi
           done
           sudo update-alternatives --query gcc
