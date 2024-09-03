@@ -232,6 +232,7 @@ jobs:
           # List GCC version
           ls /usr/bin/gcc-*
           ls /usr/bin/g++-*
+          which gcc-aarch64-linux-gnu
 
           # Setup update-alternatives for GCC
           gcc_version=$(ls /usr/bin/gcc-* | grep -oP '(?<=gcc-)\d+' | sort -u)
