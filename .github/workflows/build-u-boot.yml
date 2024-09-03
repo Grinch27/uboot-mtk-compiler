@@ -232,7 +232,6 @@ jobs:
           # List GCC version
           ls /usr/bin/gcc-*
           ls /usr/bin/g++-*
-          which gcc-aarch64-linux-gnu
 
           # Setup update-alternatives for GCC
           gcc_version=$(ls /usr/bin/gcc-* | grep -oP '(?<=gcc-)\d+' | sort -u)
@@ -250,7 +249,7 @@ jobs:
             if [ -f /usr/bin/gcc-ranlib-${version} ]; then
               sudo update-alternatives --install /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-${version} ${version}
             fi
-            if [ -f /usr/bin/gcc-aarch64-linux-gnu-${version} ]; then
+            if [ -f /usr/bin/gcc-${version}-aarch64-linux-gnu ]; then
               sudo update-alternatives --install /usr/bin/gcc-aarch64-linux-gnu gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu ${version}
             fi
           done
