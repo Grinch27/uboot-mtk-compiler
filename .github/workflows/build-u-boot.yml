@@ -201,10 +201,11 @@ jobs:
           # Verify GCC version
           gcc --version
 
-          # ls /usr/bin/gcc-*
+          ls /usr/bin/gcc-*
+          ls /usr/bin/g++-*
           gcc_versions=$(ls /usr/bin/gcc-* | grep -Eo '[0-9]+$' | sort -n)
           echo -e "Available GCC versions: ${gcc_versions}"
-          selected_version=14
+          selected_version="14"
           # 检查用户输入的版本是否有效
           if echo "$gcc_versions" | grep -q "^$selected_version$"; then
               echo "Switching to GCC version $selected_version..."
