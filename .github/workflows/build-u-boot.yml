@@ -203,79 +203,79 @@ jobs:
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Switch GNU C++ Version
-        id: gcc
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          selected_version: "14"
-        working-directory: /
-        run: |
-          packages_install=(
-            "gcc-${selected_version}"
-            "g++-${selected_version}"
-            "gcc-${selected_version}-multilib"
-            "g++-${selected_version}-multilib"
-          )
-          packages_extra=(
-            "gcc-${selected_version}-aarch64-linux-gnu"
-          )
-          sudo -E apt-get -y -qq update
-          sudo -E apt-get -y -qq install "${packages_install[@]}"
-          sudo -E apt-get -y -qq install "${packages_extra[@]}"
-          sudo -E systemctl daemon-reload
+      # - name: Switch GNU C++ Version
+      #   id: gcc
+      #   env:
+      #     DEBIAN_FRONTEND: noninteractive
+      #     selected_version: "14"
+      #   working-directory: /
+      #   run: |
+      #     packages_install=(
+      #       "gcc-${selected_version}"
+      #       "g++-${selected_version}"
+      #       "gcc-${selected_version}-multilib"
+      #       "g++-${selected_version}-multilib"
+      #     )
+      #     packages_extra=(
+      #       "gcc-${selected_version}-aarch64-linux-gnu"
+      #     )
+      #     sudo -E apt-get -y -qq update
+      #     sudo -E apt-get -y -qq install "${packages_install[@]}"
+      #     sudo -E apt-get -y -qq install "${packages_extra[@]}"
+      #     sudo -E systemctl daemon-reload
 
-          # List GCC version
-          ls /usr/bin/gcc-*
-          ls /usr/bin/g++-*
+      #     # List GCC version
+      #     ls /usr/bin/gcc-*
+      #     ls /usr/bin/g++-*
 
-          # Setup update-alternatives for GCC
-          gcc_version=$(ls /usr/bin/gcc-* | grep -oP '(?<=gcc-)\d+' | sort -u)
-          echo "Available GCC Version: ${gcc_version}"
-          for version in ${gcc_version}; do
-            if [ -f /usr/bin/gcc-${version} ]; then
-              sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${version} ${version}
-            fi
-            if [ -f /usr/bin/gcc-ar-${version} ]; then
-              sudo update-alternatives --install /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-${version} ${version}
-            fi
-            if [ -f /usr/bin/gcc-nm-${version} ]; then
-              sudo update-alternatives --install /usr/bin/gcc-nm gcc-nm /usr/bin/gcc-nm-${version} ${version}
-            fi
-            if [ -f /usr/bin/gcc-ranlib-${version} ]; then
-              sudo update-alternatives --install /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-${version} ${version}
-            fi
-            # if [ -f /usr/bin/g++-${version} ]; then
-            #   sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${version} ${version}
-            # fi
-            # if [ -f /usr/bin/gcc-${version}-aarch64-linux-gnu ]; then
-            #   sudo update-alternatives --install /usr/bin/gcc-aarch64-linux-gnu gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu ${version}
-            # fi
-          done
-          sudo update-alternatives --query gcc
+      #     # Setup update-alternatives for GCC
+      #     gcc_version=$(ls /usr/bin/gcc-* | grep -oP '(?<=gcc-)\d+' | sort -u)
+      #     echo "Available GCC Version: ${gcc_version}"
+      #     for version in ${gcc_version}; do
+      #       if [ -f /usr/bin/gcc-${version} ]; then
+      #         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${version} ${version}
+      #       fi
+      #       if [ -f /usr/bin/gcc-ar-${version} ]; then
+      #         sudo update-alternatives --install /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-${version} ${version}
+      #       fi
+      #       if [ -f /usr/bin/gcc-nm-${version} ]; then
+      #         sudo update-alternatives --install /usr/bin/gcc-nm gcc-nm /usr/bin/gcc-nm-${version} ${version}
+      #       fi
+      #       if [ -f /usr/bin/gcc-ranlib-${version} ]; then
+      #         sudo update-alternatives --install /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-${version} ${version}
+      #       fi
+      #       # if [ -f /usr/bin/g++-${version} ]; then
+      #       #   sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${version} ${version}
+      #       # fi
+      #       # if [ -f /usr/bin/gcc-${version}-aarch64-linux-gnu ]; then
+      #       #   sudo update-alternatives --install /usr/bin/gcc-aarch64-linux-gnu gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu ${version}
+      #       # fi
+      #     done
+      #     sudo update-alternatives --query gcc
 
-          # Setup update-alternatives for G++
-          gpp_versions=$(ls /usr/bin/g++-* | grep -Eo '[0-9]+$' | sort -u)
-          echo "Available G++ versions: ${gpp_versions}"
-          for version in ${gpp_versions}; do
-            if [ -f /usr/bin/g++-${version} ]; then
-              sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${version} ${version}
-            fi
-          done
-          sudo update-alternatives --query g++
+      #     # Setup update-alternatives for G++
+      #     gpp_versions=$(ls /usr/bin/g++-* | grep -Eo '[0-9]+$' | sort -u)
+      #     echo "Available G++ versions: ${gpp_versions}"
+      #     for version in ${gpp_versions}; do
+      #       if [ -f /usr/bin/g++-${version} ]; then
+      #         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${version} ${version}
+      #       fi
+      #     done
+      #     sudo update-alternatives --query g++
 
-          # Switch to selected version
-          sudo update-alternatives --set gcc /usr/bin/gcc-${selected_version}
-          sudo update-alternatives --set gcc-ar /usr/bin/gcc-ar-${selected_version}
-          sudo update-alternatives --set gcc-nm /usr/bin/gcc-nm-${selected_version}
-          sudo update-alternatives --set gcc-ranlib /usr/bin/gcc-ranlib-${selected_version}
-          # G++
-          sudo update-alternatives --set g++ /usr/bin/g++-${selected_version}
-          echo "Switched to GCC/G++ version ${selected_version}."
+      #     # Switch to selected version
+      #     sudo update-alternatives --set gcc /usr/bin/gcc-${selected_version}
+      #     sudo update-alternatives --set gcc-ar /usr/bin/gcc-ar-${selected_version}
+      #     sudo update-alternatives --set gcc-nm /usr/bin/gcc-nm-${selected_version}
+      #     sudo update-alternatives --set gcc-ranlib /usr/bin/gcc-ranlib-${selected_version}
+      #     # G++
+      #     sudo update-alternatives --set g++ /usr/bin/g++-${selected_version}
+      #     echo "Switched to GCC/G++ version ${selected_version}."
 
-          gcc --version
-          g++ --version
+      #     gcc --version
+      #     g++ --version
 
-          echo "status=success" >> ${GITHUB_OUTPUT}
+      #     echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Create simulated physical disk
         id: disk
