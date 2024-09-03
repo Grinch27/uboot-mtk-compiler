@@ -97,48 +97,7 @@ jobs:
             echo "${var}=${!var}" | tee -a $GITHUB_ENV
           done
 
-          # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
-
-      # - name: Clear environment
-      #   id: clearinit
-      #   env:
-      #     DEBIAN_FRONTEND: noninteractive
-      #   working-directory: /
-      #   run: |
-      #     echo -e "Current working directory: $(pwd)"
-      #     # 删除docker所有镜像
-      #     docker rmi $(docker images -q) 2>/dev/null
-      #     # 如果环境变量 AGENT_TOOLSDIRECTORY 不为空，则删除该目录及其所有内容
-      #     [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
-      #     # 删除指定的目录及其所有内容，忽略所有错误信息
-      #     sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
-      #     # 关闭所有交换空间 删除指定的交换文件
-      #     sudo swapoff -a
-      #     sudo rm -f /swapfile /mnt/swapfile
-
-      #     # 删除所有不再需要的软件包及其配置文件, 清理 apt 的缓存
-      #     packages_purge=(
-      #       "azure-cli*"
-      #       "docker*"
-      #       "ghc*"
-      #       "zulu*"
-      #       "llvm*"
-      #       "firefox"
-      #       "google*"
-      #       "dotnet*"
-      #       "powershell"
-      #       "openjdk*"
-      #       "mongodb*"
-      #       "moby*"
-      #     )
-      #     sudo -E apt-get -qq -y update
-      #     sudo -E apt-get -qq -y purge "${packages_purge[@]}" || true
-      #     sudo -E apt-get -qq -y autoremove --purge
-      #     sudo -E apt-get -qq clean
-
-      #     df -Th
-      #     echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Initialization environment
         id: init
@@ -230,19 +189,42 @@ jobs:
             "gcc-aarch64-linux-gnu"
             "device-tree-compiler"
           )
-          sudo -E apt-get -qq -y update
-          sudo -E apt-get -y install "${packages_install[@]}"
-          sudo -E apt-get -y install "${packages_extra[@]}"
+          sudo -E apt-get -y -qq update
+          sudo -E apt-get -y -qq install "${packages_install[@]}"
+          sudo -E apt-get -y -qq install "${packages_extra[@]}"
           sudo -E systemctl daemon-reload
-          # sudo -E apt-get -qq -y autoremove --purge
+          # sudo -E apt-get -y -qq autoremove --purge
           # sudo -E apt-get -qq clean
 
           # Verify Make version
           make --version
           # Verify GCC version
           gcc --version
-          ls /usr/bin/gcc-*
+
+          # ls /usr/bin/gcc-*
+          gcc_versions=$(ls /usr/bin/gcc-* | grep -Eo '[0-9]+$' | sort -n)
+          echo -e "Available GCC versions: ${gcc_versions}"
+          selected_version=14
+          # 检查用户输入的版本是否有效
+          if echo "$gcc_versions" | grep -q "^$selected_version$"; then
+              echo "Switching to GCC version $selected_version..."
+              
+              # 使用 update-alternatives 切换 gcc, gcc-ar, gcc-nm, gcc-ranlib 以及 g++ 相关的工具
+              sudo update-alternatives --set gcc /usr/bin/gcc-$selected_version
+              sudo update-alternatives --set gcc-ar /usr/bin/gcc-ar-$selected_version
+              sudo update-alternatives --set gcc-nm /usr/bin/gcc-nm-$selected_version
+              sudo update-alternatives --set gcc-ranlib /usr/bin/gcc-ranlib-$selected_version
+              sudo update-alternatives --set g++ /usr/bin/g++-$selected_version
+              sudo update-alternatives --set g++-ar /usr/bin/g++-ar-$selected_version
+              sudo update-alternatives --set g++-nm /usr/bin/g++-nm-$selected_version
+              sudo update-alternatives --set g++-ranlib /usr/bin/g++-ranlib-$selected_version
+              
+              echo "Switched to GCC/G++ version $selected_version."
+          else
+              echo "Invalid version selected. Please run the script again and select a valid version."
+          fi
           sudo update-alternatives --query gcc
+          gcc --version
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
