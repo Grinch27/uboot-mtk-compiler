@@ -99,6 +99,67 @@ jobs:
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
+      - name: Switch GNU C++
+        id: gcc
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          selected_version: "14"
+        working-directory: /
+        run: |
+          # List GCC version
+          ls /usr/bin/gcc-*
+          ls /usr/bin/g++-*
+
+          # 配置 update-alternatives for GCC
+          gcc_version=$(ls /usr/bin/gcc-* | grep -oP '(?<=gcc-)\d+' | sort -u)
+          echo "Available GCC Version: ${gcc_version}"
+          for version in ${gcc_version}; do
+            if [ -f /usr/bin/gcc-${version} ]; then
+              sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${version} ${version}
+            fi
+            if [ -f /usr/bin/gcc-ar-${version} ]; then
+              sudo update-alternatives --install /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-${version} ${version}
+            fi
+            if [ -f /usr/bin/gcc-nm-${version} ]; then
+              sudo update-alternatives --install /usr/bin/gcc-nm gcc-nm /usr/bin/gcc-nm-${version} ${version}
+            fi
+            if [ -f /usr/bin/gcc-ranlib-${version} ]; then
+              sudo update-alternatives --install /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-${version} ${version}
+            fi
+            if [ -f /usr/bin/g++-${version} ]; then
+              sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${version} ${version}
+            fi
+          done
+
+          # 配置 update-alternatives for G++
+          gpp_versions=$(ls /usr/bin/g++-* | grep -Eo '[0-9]+$' | sort -u)
+          echo "Available G++ versions: ${gpp_versions}"
+          for version in ${gpp_versions}; do
+            if [ -f /usr/bin/g++-${version} ]; then
+              sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${version} ${version}
+            fi
+          done
+
+          # 检查用户输入的版本是否有效
+          if echo "${gcc_version}" | grep -q "^${selected_version}$"; then
+              echo "Switching to GCC version ${selected_version}..."
+              
+              # 使用 update-alternatives 切换 gcc, gcc-ar, gcc-nm, gcc-ranlib 以及 g++ 相关的工具
+              sudo update-alternatives --set gcc /usr/bin/gcc-${selected_version}
+              sudo update-alternatives --set gcc-ar /usr/bin/gcc-ar-${selected_version}
+              sudo update-alternatives --set gcc-nm /usr/bin/gcc-nm-${selected_version}
+              sudo update-alternatives --set gcc-ranlib /usr/bin/gcc-ranlib-${selected_version}
+              sudo update-alternatives --set g++ /usr/bin/g++-${selected_version}
+              echo "Switched to GCC/G++ version ${selected_version}."
+          else
+              echo "Invalid version selected. Please run the script again and select a valid version."
+          fi
+          sudo update-alternatives --query gcc
+          gcc --version
+          g++ --version
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
       - name: Initialization environment
         id: init
         env:
@@ -199,32 +260,6 @@ jobs:
           # Verify Make version
           make --version
           # Verify GCC version
-          gcc --version
-
-          ls /usr/bin/gcc-*
-          ls /usr/bin/g++-*
-          gcc_versions=$(ls /usr/bin/gcc-* | grep -Eo '[0-9]+$' | sort -n)
-          echo -e "Available GCC versions: ${gcc_versions}"
-          selected_version="14"
-          # 检查用户输入的版本是否有效
-          if echo "$gcc_versions" | grep -q "^$selected_version$"; then
-              echo "Switching to GCC version $selected_version..."
-              
-              # 使用 update-alternatives 切换 gcc, gcc-ar, gcc-nm, gcc-ranlib 以及 g++ 相关的工具
-              sudo update-alternatives --set gcc /usr/bin/gcc-$selected_version
-              sudo update-alternatives --set gcc-ar /usr/bin/gcc-ar-$selected_version
-              sudo update-alternatives --set gcc-nm /usr/bin/gcc-nm-$selected_version
-              sudo update-alternatives --set gcc-ranlib /usr/bin/gcc-ranlib-$selected_version
-              sudo update-alternatives --set g++ /usr/bin/g++-$selected_version
-              sudo update-alternatives --set g++-ar /usr/bin/g++-ar-$selected_version
-              sudo update-alternatives --set g++-nm /usr/bin/g++-nm-$selected_version
-              sudo update-alternatives --set g++-ranlib /usr/bin/g++-ranlib-$selected_version
-              
-              echo "Switched to GCC/G++ version $selected_version."
-          else
-              echo "Invalid version selected. Please run the script again and select a valid version."
-          fi
-          sudo update-alternatives --query gcc
           gcc --version
 
           echo "status=success" >> ${GITHUB_OUTPUT}
