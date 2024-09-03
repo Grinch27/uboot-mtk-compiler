@@ -211,17 +211,12 @@ jobs:
         working-directory: /
         run: |
           packages_install=(
-            "gcc"
-            "g++"
-            "gcc-multilib"
-            "g++-multilib"
             "gcc-${selected_version}"
             "g++-${selected_version}"
             "gcc-${selected_version}-multilib"
             "g++-${selected_version}-multilib"
           )
           packages_extra=(
-            "gcc-aarch64-linux-gnu"
             "gcc-${selected_version}-aarch64-linux-gnu"
           )
           sudo -E apt-get -y -qq update
