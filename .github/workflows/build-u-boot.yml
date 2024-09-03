@@ -225,7 +225,6 @@ jobs:
             "zlib1g-dev"
             "libdb++-dev"
             "make"
-            "update-alternatives"
           )
           packages_extra=(
             "gcc-aarch64-linux-gnu"
