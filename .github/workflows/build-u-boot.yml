@@ -244,9 +244,12 @@ jobs:
             if [ -f /usr/bin/gcc-ranlib-${version} ]; then
               sudo update-alternatives --install /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-${version} ${version}
             fi
-            if [ -f /usr/bin/gcc-${version}-aarch64-linux-gnu ]; then
-              sudo update-alternatives --install /usr/bin/gcc-aarch64-linux-gnu gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu ${version}
-            fi
+            # if [ -f /usr/bin/g++-${version} ]; then
+            #   sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${version} ${version}
+            # fi
+            # if [ -f /usr/bin/gcc-${version}-aarch64-linux-gnu ]; then
+            #   sudo update-alternatives --install /usr/bin/gcc-aarch64-linux-gnu gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu ${version}
+            # fi
           done
           sudo update-alternatives --query gcc
 
