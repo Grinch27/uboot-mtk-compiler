@@ -465,16 +465,14 @@ jobs:
           # rm -rf packages
           ls -al ./
 
-          # 定义一个关联数组来存储文件名和对应的校验和
           declare -A checksums
-          # 将所有 .bin 文件添加到数组中，并计算其 SHA256 校验和
           for file in ./*.bin; do
             if [[ ! -d "${file}" ]]; then
-              checksums["${file}"]=$(sha256sum "${file}" | awk '{print $1}')
+              checksums["${file}"]=$(sha256sum "${file}")
             fi
           done
           echo "checksums=${checksums}" | tee -a ${GITHUB_OUTPUT}
-          
+
           echo -e "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
@@ -531,6 +529,7 @@ jobs:
 
       - name: Clear workspace
         id: clearwork
+        if: ${{ 'true' == 'false' }} # disable
         working-directory: ${{ env.path_build }}
         run: |
           echo -e "Current working directory: $(pwd)"
