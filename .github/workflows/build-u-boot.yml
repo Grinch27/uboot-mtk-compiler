@@ -468,6 +468,8 @@ jobs:
           declare -A checksums
           for file in ./*.bin; do
             if [[ ! -d "${file}" ]]; then
+              temp_sha=$(sha256sum "${file}")
+              echo "${temp_sha}"
               checksums["${file}"]=$(sha256sum "${file}")
             fi
           done
@@ -484,13 +486,10 @@ jobs:
         run: |
           printf "Current working directory: %s\n" "$(pwd)"
 
-          # 提取release_md变量中的目录路径，检查目录是否存在，如果不存在则创建
           release_md_dir=$(dirname ${release_md})
           mkdir -p ${release_md_dir}
-          # 确保release.md文件存在
           : > ${release_md}
 
-          # 模块化记录函数
           record_to_markdown() {
             local title="$1"
             local content="$2"
@@ -505,9 +504,9 @@ jobs:
             fi
           }
 
-          # 记录构建者、编译完成时间
-          record_to_markdown "Build ${device_branch} - by ${repo_diy_owner}" ""
-          record_to_markdown "Build Time" "- [x] $(date +"%Y-%m-%d %H:%M:%S %z")"
+          # record_to_markdown "Build ${device_branch} - by ${repo_diy_owner}" ""
+          record_to_markdown "Timestamp" "- [x] $(date +"%Y-%m-%d %H:%M:%S %z")"
+          record_to_markdown "Repository" "- [x] ${repo_target}<br>- [x] ${repo_target_branch}"
 
           cat ${release_md}
           echo "status=success" >> ${GITHUB_OUTPUT}
