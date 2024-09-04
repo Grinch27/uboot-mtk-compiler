@@ -285,8 +285,8 @@ jobs:
 
       - name: Create simulated physical disk
         id: disk
-        working-directory: /
         if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
+        working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
           # 计算 /mnt 分区的可用空间（减去 1GB 作为缓冲）, 计算根分区的可用空间（减去 4GB 作为缓冲）
@@ -315,8 +315,8 @@ jobs:
 
       - name: Clone Target Repository
         id: clonesys
-        working-directory: ${{ env.path_build }}
         if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
+        working-directory: ${{ env.path_build }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
@@ -328,8 +328,8 @@ jobs:
 
       - name: Backup Target Repository
         id: backup
-        working-directory: ${{ env.path_build }}
         if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
+        working-directory: ${{ env.path_build }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
@@ -462,8 +462,16 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          rm -rf packages
+          # rm -rf packages
           ls -al ./
+
+          for file in ./*.bin
+          do
+            if [[ ! -d "${file}" ]]
+            then
+              sha256sum "${file}" > "${file}.sha"
+            fi
+          done
 
           echo -e "timestamp=$(date +"%y%mw%V")" >> ${GITHUB_OUTPUT}
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -509,7 +517,6 @@ jobs:
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         env:
           timestamp: ${{ steps.output.outputs.timestamp }}
-          # release_md: ${{ steps.record.outputs.record }}
         with:
           name: "${{ env.openwrt_branch }}_${{ env.timestamp }}"
           tag: "${{ env.openwrt_branch }}"
@@ -519,7 +526,6 @@ jobs:
           replacesArtifacts: true
           token: "${{ secrets.GITHUB_TOKEN }}"
           bodyFile: "${{ env.release_md }}"
-          # body: ""
 
       - name: Clear workspace
         id: clearwork
