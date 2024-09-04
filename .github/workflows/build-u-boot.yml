@@ -44,6 +44,8 @@ on:
           - newland_nl-wr8103
           - honor_fur-602
           - newland_nl-wr9103
+          - cmcc_xr30
+          - cmcc_xr30-emmc
 
 env:
   openwrt_branch: ${{ inputs.openwrt_branch || 'u-boot' }}
@@ -431,6 +433,8 @@ jobs:
             ["newland_nl-wr8103"]="mt7981|0,1|0,1" # Newland NL-WR8103/MR3000D-CIq(256MB RAM version) [with MULTI_LAYOUT]
             ["honor_fur-602"]="mt7981|0,1|0,1" # HONOR FUR-602/603 (HONOR XT50/XU50/XC50) [with MULTI_LAYOUT]
             ["newland_nl-wr9103"]="mt7981|0,1|0,1" # Newland NL-WR9103 [with MULTI_LAYOUT]
+            ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
+            ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
           )
 
           if [[ -z "${device}" || "${device,,}" == "all" ]]; then
