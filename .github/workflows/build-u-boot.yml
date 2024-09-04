@@ -490,9 +490,9 @@ jobs:
           declare -A checksums
           for file in ./*.bin; do
             if [[ ! -d "${file}" ]]; then
-              temp_sha=$(sha256sum "${file}")
-              echo "${temp_sha}"
-              checksums["${file}"]=$(sha256sum "${file}")
+              read -r checksum filename <<< "$(sha256sum "${file}")"
+              filename=$(basename "${filename}")
+              checksums["${filename}"]="${checksum}"
             fi
           done
           echo "checksums=${checksums}" | tee -a ${GITHUB_OUTPUT}
