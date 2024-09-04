@@ -362,59 +362,6 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          backup_repo() {
-            local ORIGINAL_DIR="$PWD"
-
-            echo "Backup path: ${path_backup}"
-            mkdir -p ${path_backup}
-            cp -rf ${path_openwrt} ${path_backup}
-            ls -al ${path_backup}
-
-            echo "Changing back to the original directory ${ORIGINAL_DIR}"
-            cd "${ORIGINAL_DIR}"
-          }
-
-          # ----- Define function to compile U-Boot -----
-          complie_device() {
-            local device=$1
-            local params=$2
-            IFS='|' read -ra PARAMS <<< "$params"
-            split_device_params "$device" "${PARAMS[0]}" "${PARAMS[@]:1}"
-          }
-
-          split_device_params() {
-            local BOARD=$1
-            local SOC=$2
-            local OTHER_PARAMS=("${@:3}")
-            # 从第三个参数开始获取所有参数，存储到 OTHER_PARAMS 数组中
-            local MULTI_LAYOUT_VALUES=${OTHER_PARAMS[0]:-"0"}
-            local FIXED_MTDPARTS_VALUES=${OTHER_PARAMS[1]:-"0"}
-            
-            IFS=',' read -ra MULTI_LAYOUT_ARRAY <<< "${MULTI_LAYOUT_VALUES}"
-            IFS=',' read -ra FIXED_MTDPARTS_ARRAY <<< "${FIXED_MTDPARTS_VALUES}"
-            
-            for MULTI_LAYOUT in "${MULTI_LAYOUT_ARRAY[@]}"; do
-              for FIXED_MTDPARTS in "${FIXED_MTDPARTS_ARRAY[@]}"; do
-                cd "${path_build}"
-                rm -rf "${path_openwrt}"
-                cp -rf "${path_backup}/${openwrt_branch}" "${path_build}"
-                cd "${path_openwrt}"
-                exec_build_sh "${SOC}" "${BOARD}" "${MULTI_LAYOUT}" "${FIXED_MTDPARTS}"
-              done
-            done
-          }
-
-          exec_build_sh() {
-            local SOC=$1
-            local BOARD=$2
-            local MULTI_LAYOUT=$3
-            local FIXED_MTDPARTS=$4
-            echo -e "Current working directory: $(pwd)"
-            echo -e "---------- Compile U-Boot of ${BOARD} ----------"
-            SOC=${SOC} BOARD=${BOARD} MULTI_LAYOUT=${MULTI_LAYOUT} FIXED_MTDPARTS=${FIXED_MTDPARTS} ./build.sh
-            cp -rf ./output/* ${path_output}
-          }
-
           # [BOARD] = SOC | MULTI_LAYOUT | FIXED_MTDPARTS
           # local switch_MULTI_LAYOUT="0"
           # local switch_FIXED_MTDPARTS="0,1"
@@ -448,7 +395,63 @@ jobs:
             ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
             ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
           )
+          
+          # ===== Backup Target Repository =====
+          backup_repo() {
+            local ORIGINAL_DIR="$PWD"
 
+            echo "Backup path: ${path_backup}"
+            mkdir -p ${path_backup}
+            cp -rf ${path_openwrt} ${path_backup}
+            ls -al ${path_backup}
+
+            echo "Changing back to the original directory ${ORIGINAL_DIR}"
+            cd "${ORIGINAL_DIR}"
+          }
+
+          # ===== Define function to compile U-Boot =====
+          # ----- complie_device > split_device_params > exec_build_sh -----
+          complie_device() {
+            local device=$1
+            local params=$2
+            IFS='|' read -ra PARAMS <<< "$params"
+            split_device_params "$device" "${PARAMS[0]}" "${PARAMS[@]:1}"
+          }
+
+          split_device_params() {
+            local BOARD=$1
+            local SOC=$2
+            local OTHER_PARAMS=("${@:3}")
+            # 从第三个参数开始获取所有参数，存储到 OTHER_PARAMS 数组中
+            local MULTI_LAYOUT_VALUES=${OTHER_PARAMS[0]:-"0"}
+            local FIXED_MTDPARTS_VALUES=${OTHER_PARAMS[1]:-"0"}
+            IFS=',' read -ra MULTI_LAYOUT_ARRAY <<< "${MULTI_LAYOUT_VALUES}"
+            IFS=',' read -ra FIXED_MTDPARTS_ARRAY <<< "${FIXED_MTDPARTS_VALUES}"
+            
+            for MULTI_LAYOUT in "${MULTI_LAYOUT_ARRAY[@]}"; do
+              for FIXED_MTDPARTS in "${FIXED_MTDPARTS_ARRAY[@]}"; do
+                cd "${path_build}"
+                rm -rf "${path_openwrt}"
+                cp -rf "${path_backup}/${openwrt_branch}" "${path_build}"
+                cd "${path_openwrt}"
+                exec_build_sh "${SOC}" "${BOARD}" "${MULTI_LAYOUT}" "${FIXED_MTDPARTS}"
+              done
+            done
+          }
+
+          exec_build_sh() {
+            local SOC=$1
+            local BOARD=$2
+            local MULTI_LAYOUT=$3
+            local FIXED_MTDPARTS=$4
+
+            echo -e "Current working directory: $(pwd)"
+            echo -e "---------- Compile U-Boot of ${BOARD} ----------"
+            SOC=${SOC} BOARD=${BOARD} MULTI_LAYOUT=${MULTI_LAYOUT} FIXED_MTDPARTS=${FIXED_MTDPARTS} ./build.sh
+            cp -rf ./output/* ${path_output}
+          }
+          
+          # ===== main function =====
           main() {
             mkdir -p ${path_output}
             backup_repo
@@ -525,7 +528,8 @@ jobs:
 
           # record_to_markdown "Build ${device_branch} - by ${repo_diy_owner}" ""
           record_to_markdown "Timestamp" "- [x] $(date +"%Y-%m-%d %H:%M:%S %z")"
-          record_to_markdown "Repository" "- [x] ${repo_target}<br>- [x] ${repo_target_branch}"
+          record_to_markdown "Repository" "- [x] ${repo_target}"
+          record_to_markdown "Repository Branch" "- [x] ${repo_target_branch}"
 
           cat ${release_md}
           echo "status=success" >> ${GITHUB_OUTPUT}
