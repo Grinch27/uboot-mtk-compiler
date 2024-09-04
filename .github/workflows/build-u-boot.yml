@@ -4,6 +4,13 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
+      # app_branch:
+      #   description: "Select openwrt branch"
+      #   required: true
+      #   default: "u-boot"
+      #   type: choice
+      #   options:
+      #     - u-boot
       device_branch:
         description: "Select device branch"
         required: true
@@ -39,13 +46,6 @@ on:
           - newland_nl-wr9103
           - cmcc_xr30
           - cmcc_xr30-emmc
-      # app_branch:
-      #   description: "Select openwrt branch"
-      #   required: true
-      #   default: "u-boot"
-      #   type: choice
-      #   options:
-      #     - u-boot
 
 env:
   device_branch: ${{ inputs.device_branch || 'all' }}
