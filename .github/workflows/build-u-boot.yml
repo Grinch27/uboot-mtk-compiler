@@ -65,10 +65,9 @@ jobs:
           echo -e "Current working directory: $(pwd)"
 
           # ========== Set repo branch ==========
-          repo_diy="https://github.com/$GITHUB_REPOSITORY"
-
           repo_target="https://github.com/hanwckf/bl-mt798x"
           repo_target_branch="master"
+          # repo_diy="https://github.com/$GITHUB_REPOSITORY"
 
           # ========== Build Path ==========
           dir_build="builder"
@@ -87,7 +86,6 @@ jobs:
 
           # ========== GITHUB_ENV ==========
           env_vars=(
-            "repo_diy"
             "repo_target"
             "repo_target_branch"
             "path_build"
