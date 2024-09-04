@@ -463,7 +463,7 @@ jobs:
 
       - name: Setup output
         id: output
-        if: ${{ steps.copy.outputs.status }} == 'success' && !cancelled()
+        if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
         env:
           category: "files"
         working-directory: ${{ env.path_output }}
