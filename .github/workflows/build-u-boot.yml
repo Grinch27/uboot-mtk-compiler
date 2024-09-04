@@ -192,7 +192,6 @@ jobs:
           )
           packages_extra=(
             "gcc-aarch64-linux-gnu"
-            "device-tree-compiler"
           )
           sudo -E apt-get -y -qq update
           sudo -E apt-get -y -qq install "${packages_install[@]}"
