@@ -338,21 +338,6 @@ jobs:
           # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Backup Target Repository
-        id: backup
-        # if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
-        if: ${{ 'true' == 'false' }} # disable
-        working-directory: ${{ env.path_build }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          echo "Backup path: ${path_backup}"
-          mkdir -p ${path_backup}
-          cp -rf ${path_openwrt} ${path_backup}
-          ls -al ${path_backup}
-
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
       - name: Compile U-Boot Cycle
         id: compile
         if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
@@ -482,6 +467,7 @@ jobs:
         if: ${{ steps.copy.outputs.status }} == 'success' && !cancelled()
         env:
           category: "files"
+          metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
         working-directory: ${{ env.path_output }}
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -489,16 +475,11 @@ jobs:
           # rm -rf packages
           ls -al ./
 
-          # declare -A checksums
           metadata='{"${{ env.category }}":[]}'
           for file in ./*.bin; do
             if [[ ! -d "${file}" ]]; then
               read -r checksum filename <<< "$(sha256sum "${file}")"
               filename=$(basename "${filename}")
-              echo "filename=${filename}"
-              echo "checksum=${checksum}"
-              # checksums["${filename}"]="${checksum}"
-
               metadata=$(jq \
                 --arg filename "${filename}" \
                 --arg checksum "${checksum}" \
@@ -506,6 +487,7 @@ jobs:
             fi
           done
           echo "metadata=${metadata}"
+          echo "${metadata}" | jq . > ${{ env.metadata_sum_path }}
 
           echo -e "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -514,6 +496,7 @@ jobs:
         id: record
         env:
           release_md: ${{ env.release_md }}
+          metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
         working-directory: ${{ env.path_openwrt }}
         run: |
           printf "Current working directory: %s\n" "$(pwd)"
@@ -540,6 +523,9 @@ jobs:
           record_to_markdown "Timestamp" "- [x] $(date +"%Y-%m-%d %H:%M:%S %z")"
           record_to_markdown "Repository" "- [x] ${repo_target}"
           record_to_markdown "Repository Branch" "- [x] ${repo_target_branch}"
+
+          sum_json_content=$(jq '.' "${{ env.metadata_sum_path }}")
+          record_to_markdown "sha256sum" "${sum_json_content}" "json"
 
           cat ${release_md}
           echo "status=success" >> ${GITHUB_OUTPUT}
