@@ -326,20 +326,6 @@ jobs:
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Backup Target Repository
-        id: backup
-        if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
-        working-directory: ${{ env.path_build }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          echo "Backup path: ${path_backup}"
-          mkdir -p ${path_backup}
-          cp -rf ${path_openwrt} ${path_backup}
-          ls -al ${path_backup}
-
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
       - name: Check environment
         id: checkenv
         working-directory: /
@@ -352,17 +338,43 @@ jobs:
           # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
 
+      - name: Backup Target Repository
+        id: backup
+        # if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
+        if: ${{ 'true' == 'false' }} # disable
+        working-directory: ${{ env.path_build }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          echo "Backup path: ${path_backup}"
+          mkdir -p ${path_backup}
+          cp -rf ${path_openwrt} ${path_backup}
+          ls -al ${path_backup}
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
       - name: Compile U-Boot Cycle
         id: compile
         if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
         env:
           device: ${{ env.device_branch }}
+        working-directory: ${{ env.path_build }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          mkdir -p ${path_output}
+          backup_repo() {
+            local ORIGINAL_DIR="$PWD"
 
-          # Define function to compile U-Boot
+            echo "Backup path: ${path_backup}"
+            mkdir -p ${path_backup}
+            cp -rf ${path_openwrt} ${path_backup}
+            ls -al ${path_backup}
+
+            echo "Changing back to the original directory ${ORIGINAL_DIR}"
+            cd "${ORIGINAL_DIR}"
+          }
+
+          # ----- Define function to compile U-Boot -----
           complie_device() {
             local device=$1
             local params=$2
@@ -373,8 +385,8 @@ jobs:
           split_device_params() {
             local BOARD=$1
             local SOC=$2
-            local OTHER_PARAMS=("${@:3}") # 从第三个参数开始获取所有参数，存储到 OTHER_PARAMS 数组中
-            
+            local OTHER_PARAMS=("${@:3}")
+            # 从第三个参数开始获取所有参数，存储到 OTHER_PARAMS 数组中
             local MULTI_LAYOUT_VALUES=${OTHER_PARAMS[0]:-"0"}
             local FIXED_MTDPARTS_VALUES=${OTHER_PARAMS[1]:-"0"}
             
@@ -437,22 +449,29 @@ jobs:
             ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
           )
 
-          if [[ -z "${device}" || "${device,,}" == "all" ]]; then
-            echo "Compiling for all devices"
-            for BOARD in "${!BOARD_PARAMS[@]}"; do
-              complie_device "$BOARD" "${BOARD_PARAMS[$BOARD]}"
-            done
-          else
-            if [[ -n "${BOARD_PARAMS[${device}]}" ]]; then
-              echo "Compiling for device: ${device}"
-              complie_device "$device" "${BOARD_PARAMS[$device]}"
-            else
-              echo "Invalid device: ${device}"
-              exit 1
-            fi
-          fi
+          main() {
+            mkdir -p ${path_output}
+            backup_repo
 
-          echo -e "========== Build Finished =========="
+            if [[ -z "${device}" || "${device,,}" == "all" ]]; then
+              echo "Compiling for all devices"
+              for BOARD in "${!BOARD_PARAMS[@]}"; do
+                complie_device "$BOARD" "${BOARD_PARAMS[$BOARD]}"
+              done
+            else
+              if [[ -n "${BOARD_PARAMS[${device}]}" ]]; then
+                echo "Compiling for device: ${device}"
+                complie_device "$device" "${BOARD_PARAMS[$device]}"
+              else
+                echo "Invalid device: ${device}"
+                exit 1
+              fi
+            fi
+
+            echo -e "========== Build Finished =========="
+          }
+          main "$@"
+
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Setup output
