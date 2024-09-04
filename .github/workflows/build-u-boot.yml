@@ -492,6 +492,8 @@ jobs:
             if [[ ! -d "${file}" ]]; then
               read -r checksum filename <<< "$(sha256sum "${file}")"
               filename=$(basename "${filename}")
+              echo "filename=${filename}"
+              echo "checksum=${checksum}"
               checksums["${filename}"]="${checksum}"
             fi
           done
