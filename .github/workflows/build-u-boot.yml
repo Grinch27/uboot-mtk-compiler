@@ -4,13 +4,6 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
-      openwrt_branch:
-        description: "Select openwrt branch"
-        required: true
-        default: "u-boot"
-        type: choice
-        options:
-          - u-boot
       device_branch:
         description: "Select device branch"
         required: true
@@ -46,10 +39,17 @@ on:
           - newland_nl-wr9103
           - cmcc_xr30
           - cmcc_xr30-emmc
+      # app_branch:
+      #   description: "Select openwrt branch"
+      #   required: true
+      #   default: "u-boot"
+      #   type: choice
+      #   options:
+      #     - u-boot
 
 env:
-  openwrt_branch: ${{ inputs.openwrt_branch || 'u-boot' }}
   device_branch: ${{ inputs.device_branch || 'all' }}
+  app_branch: 'u-boot'
 
 jobs:
   build:
@@ -58,7 +58,7 @@ jobs:
     env:
       metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
     steps:
-      - name: Set environment variable (${{ inputs.openwrt_branch }})
+      - name: Set environment variable - ${{ env.app_branch }} - ${{ env.device_branch }}
         id: var
         working-directory: /
         run: |
@@ -77,12 +77,12 @@ jobs:
           dir_diy="DIY"
           # ---------- / ----------
           path_build="/${dir_build}"
-          path_openwrt="${path_build}/${openwrt_branch}"
+          path_target="${path_build}/${app_branch}"
           path_output="${path_build}/${dir_output}"
           path_backup="${path_build}/${dir_backup}"
 
-          path_diy="${path_openwrt}/${dir_diy}"
-          path_diy_branch="${path_diy}/${openwrt_branch}"
+          path_diy="${path_target}/${dir_diy}"
+          path_diy_branch="${path_diy}/${app_branch}"
           release_md="${path_diy_branch}/release.md"
 
           # ========== GITHUB_ENV ==========
@@ -91,7 +91,7 @@ jobs:
             "repo_target"
             "repo_target_branch"
             "path_build"
-            "path_openwrt"
+            "path_target"
             "path_output"
             "path_backup"
             "path_diy"
@@ -320,7 +320,7 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${repo_target} ${path_openwrt} --single-branch --depth=1 --branch=${repo_target_branch} 
+          git clone ${repo_target} ${path_target} --single-branch --depth=1 --branch=${repo_target_branch} 
           echo -e "repo_target: [ ${repo_target} ]\nBRANCH: [ ${repo_target_branch} ]"
 
           df -hT ${PWD}
@@ -387,7 +387,7 @@ jobs:
 
             echo "Backup path: ${path_backup}"
             mkdir -p ${path_backup}
-            cp -rf ${path_openwrt} ${path_backup}
+            cp -rf ${path_target} ${path_backup}
             ls -al ${path_backup}
 
             echo "Changing back to the original directory ${ORIGINAL_DIR}"
@@ -416,9 +416,9 @@ jobs:
             for MULTI_LAYOUT in "${MULTI_LAYOUT_ARRAY[@]}"; do
               for FIXED_MTDPARTS in "${FIXED_MTDPARTS_ARRAY[@]}"; do
                 cd "${path_build}"
-                rm -rf "${path_openwrt}"
-                cp -rf "${path_backup}/${openwrt_branch}" "${path_build}"
-                cd "${path_openwrt}"
+                rm -rf "${path_target}"
+                cp -rf "${path_backup}/${app_branch}" "${path_build}"
+                cd "${path_target}"
                 exec_build_sh "${SOC}" "${BOARD}" "${MULTI_LAYOUT}" "${FIXED_MTDPARTS}"
               done
             done
@@ -495,7 +495,7 @@ jobs:
         id: record
         env:
           release_md: ${{ env.release_md }}
-        working-directory: ${{ env.path_openwrt }}
+        working-directory: ${{ env.path_target }}
         run: |
           printf "Current working directory: %s\n" "$(pwd)"
 
@@ -528,13 +528,14 @@ jobs:
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Upload OpenWrt to Release
+        id: release
         uses: ncipollo/release-action@main
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         env:
           timestamp: ${{ steps.output.outputs.timestamp }}
         with:
-          name: "${{ env.openwrt_branch }}_${{ env.timestamp }}"
-          tag: "${{ env.openwrt_branch }}"
+          name: "${{ env.app_branch }}_${{ env.timestamp }}"
+          tag: "${{ env.app_branch }}"
           artifacts: "${{ env.path_output }}/*"
           allowUpdates: true
           removeArtifacts: false
