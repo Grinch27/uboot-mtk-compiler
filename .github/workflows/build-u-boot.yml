@@ -55,6 +55,8 @@ jobs:
   build:
     name: Build U-Boot
     runs-on: ubuntu-24.04
+    env:
+      metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
     steps:
       - name: Set environment variable (${{ inputs.openwrt_branch }})
         id: var
@@ -64,7 +66,6 @@ jobs:
 
           # ========== Set repo branch ==========
           repo_diy="https://github.com/$GITHUB_REPOSITORY"
-          repo_diy_owner="$GITHUB_REPOSITORY_OWNER"
 
           repo_target="https://github.com/hanwckf/bl-mt798x"
           repo_target_branch="master"
@@ -87,7 +88,6 @@ jobs:
           # ========== GITHUB_ENV ==========
           env_vars=(
             "repo_diy"
-            "repo_diy_owner"
             "repo_target"
             "repo_target_branch"
             "path_build"
@@ -467,7 +467,6 @@ jobs:
         if: ${{ steps.copy.outputs.status }} == 'success' && !cancelled()
         env:
           category: "files"
-          metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
         working-directory: ${{ env.path_output }}
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -496,7 +495,6 @@ jobs:
         id: record
         env:
           release_md: ${{ env.release_md }}
-          metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
         working-directory: ${{ env.path_openwrt }}
         run: |
           printf "Current working directory: %s\n" "$(pwd)"
@@ -519,7 +517,6 @@ jobs:
             fi
           }
 
-          # record_to_markdown "Build ${device_branch} - by ${repo_diy_owner}" ""
           record_to_markdown "Timestamp" "- [x] $(date +"%Y-%m-%d %H:%M:%S %z")"
           record_to_markdown "Repository" "- [x] ${repo_target}"
           record_to_markdown "Repository Branch" "- [x] ${repo_target_branch}"
