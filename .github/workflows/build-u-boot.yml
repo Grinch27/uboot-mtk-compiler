@@ -81,9 +81,9 @@ jobs:
           path_output="${path_build}/${dir_output}"
           path_backup="${path_build}/${dir_backup}"
 
-          path_diy="${path_target}/${dir_diy}"
-          path_diy_branch="${path_diy}/${app_branch}"
-          release_md="${path_diy_branch}/release.md"
+          # path_diy="${path_target}/${dir_diy}"
+          # path_diy_branch="${path_diy}/${app_branch}"
+          release_md="${path_build}/release.md"
 
           # ========== GITHUB_ENV ==========
           env_vars=(
@@ -94,8 +94,6 @@ jobs:
             "path_target"
             "path_output"
             "path_backup"
-            "path_diy"
-            "path_diy_branch"
             "release_md"
           )
           for var in "${env_vars[@]}"; do
