@@ -41,6 +41,7 @@ on:
           - ruijie_rg_x30e
           - ruijie_rg_x30e_pro
           - tplink_tl-xtr8488
+          - newland_nl-wr8103
 
 env:
   openwrt_branch: ${{ inputs.openwrt_branch || 'u-boot' }}
@@ -425,6 +426,7 @@ jobs:
             ["ruijie_rg_x30e"]="mt7981|0,1|0,1" # Ruijie RG-X30E [with MULTI_LAYOUT]
             ["ruijie_rg_x30e_pro"]="mt7981|0,1|0,1" # Ruijie RG-X30E Pro [with MULTI_LAYOUT]
             ["tplink_tl-xtr8488"]="mt7986|0|0,1" # TP-Link TL-XTR8488
+            ["newland_nl-wr8103"]="mt7981|0,1|0,1" # Newland NL-WR8103/MR3000D-CIq(256MB RAM version) [with MULTI_LAYOUT]
           )
 
           if [[ -z "${device}" || "${device,,}" == "all" ]]; then
