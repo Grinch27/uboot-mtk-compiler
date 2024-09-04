@@ -43,6 +43,7 @@ on:
           - tplink_tl-xtr8488
           - newland_nl-wr8103
           - honor_fur-602
+          - newland_nl-wr9103
 
 env:
   openwrt_branch: ${{ inputs.openwrt_branch || 'u-boot' }}
@@ -429,6 +430,7 @@ jobs:
             ["tplink_tl-xtr8488"]="mt7986|0|0,1" # TP-Link TL-XTR8488
             ["newland_nl-wr8103"]="mt7981|0,1|0,1" # Newland NL-WR8103/MR3000D-CIq(256MB RAM version) [with MULTI_LAYOUT]
             ["honor_fur-602"]="mt7981|0,1|0,1" # HONOR FUR-602/603 (HONOR XT50/XU50/XC50) [with MULTI_LAYOUT]
+            ["newland_nl-wr9103"]="mt7981|0,1|0,1" # Newland NL-WR9103 [with MULTI_LAYOUT]
           )
 
           if [[ -z "${device}" || "${device,,}" == "all" ]]; then
