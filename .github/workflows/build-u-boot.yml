@@ -479,34 +479,42 @@ jobs:
 
       - name: Setup output
         id: output
-        working-directory: ${{ env.path_output }}
         if: ${{ steps.copy.outputs.status }} == 'success' && !cancelled()
+        env:
+          category: "files"
+        working-directory: ${{ env.path_output }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
           # rm -rf packages
           ls -al ./
 
-          declare -A checksums
+          # declare -A checksums
+          metadata='{"${{ env.category }}":[]}'
           for file in ./*.bin; do
             if [[ ! -d "${file}" ]]; then
               read -r checksum filename <<< "$(sha256sum "${file}")"
               filename=$(basename "${filename}")
               echo "filename=${filename}"
               echo "checksum=${checksum}"
-              checksums["${filename}"]="${checksum}"
+              # checksums["${filename}"]="${checksum}"
+
+              metadata=$(jq \
+                --arg filename "${filename}" \
+                --arg checksum "${checksum}" \
+                '.${{ env.category }} += [{filename: $filename, checksum: $checksum}]' <<< "${metadata}")
             fi
           done
-          echo "checksums=${checksums}" | tee -a ${GITHUB_OUTPUT}
+          echo "metadata=${metadata}"
 
           echo -e "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: "[release.md] Record release.md"
         id: record
-        working-directory: ${{ env.path_openwrt }}
         env:
           release_md: ${{ env.release_md }}
+        working-directory: ${{ env.path_openwrt }}
         run: |
           printf "Current working directory: %s\n" "$(pwd)"
 
