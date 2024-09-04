@@ -67,7 +67,7 @@ jobs:
           # ========== Set repo branch ==========
           repo_target="https://github.com/hanwckf/bl-mt798x"
           repo_target_branch="master"
-          # repo_diy="https://github.com/$GITHUB_REPOSITORY"
+          repo_diy="https://github.com/$GITHUB_REPOSITORY"
 
           # ========== Build Path ==========
           dir_build="builder"
@@ -80,24 +80,66 @@ jobs:
           path_output="${path_build}/${dir_output}"
           path_backup="${path_build}/${dir_backup}"
 
-          # path_diy="${path_target}/${dir_diy}"
-          # path_diy_branch="${path_diy}/${app_branch}"
+          path_diy="${path_build}/${dir_diy}"
           release_md="${path_build}/release.md"
 
           # ========== GITHUB_ENV ==========
           env_vars=(
             "repo_target"
             "repo_target_branch"
+            "repo_diy"
             "path_build"
             "path_target"
             "path_output"
             "path_backup"
+            "path_diy"
             "release_md"
           )
           for var in "${env_vars[@]}"; do
             echo "${var}=${!var}" | tee -a $GITHUB_ENV
           done
 
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Clear environment
+        id: clearinit
+        if: ${{ 'true' == 'false' }} # disable
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          # 删除docker所有镜像
+          docker rmi $(docker images -q) 2>/dev/null
+          # 如果环境变量 AGENT_TOOLSDIRECTORY 不为空，则删除该目录及其所有内容
+          [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
+          # 删除指定的目录及其所有内容，忽略所有错误信息
+          sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
+          # 关闭所有交换空间 删除指定的交换文件
+          sudo swapoff -a
+          sudo rm -f /swapfile /mnt/swapfile
+
+          # 删除所有不再需要的软件包及其配置文件, 清理 apt 的缓存
+          packages_purge=(
+            "azure-cli*"
+            "docker*"
+            "ghc*"
+            "zulu*"
+            "llvm*"
+            "firefox"
+            "google*"
+            "dotnet*"
+            "powershell"
+            "openjdk*"
+            "mongodb*"
+            "moby*"
+          )
+          sudo -E apt-get -qq -y update
+          sudo -E apt-get -qq -y purge "${packages_purge[@]}" || true
+          # sudo -E apt-get -qq -y autoremove --purge
+          # sudo -E apt-get -qq clean
+
+          df -Th
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Initialization environment
@@ -321,6 +363,20 @@ jobs:
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
+      - name: Clone DIY
+        id: clonediy
+        # if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
+        if: ${{ 'true' == 'false' }} # disable
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          git clone ${repo_diy} ${path_diy} --single-branch --depth=1 --branch=main
+          echo -e "repo_diy: [ ${repo_diy} ]\nBRANCH: [ main ]"
+
+          df -hT ${PWD}
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
       - name: Check environment
         id: checkenv
         working-directory: /
@@ -330,7 +386,6 @@ jobs:
           # List all environment variables
           printenv
 
-          # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Compile U-Boot Cycle
@@ -450,8 +505,6 @@ jobs:
                 exit 1
               fi
             fi
-
-            echo -e "========== Build Finished =========="
           }
           main "$@"
 
