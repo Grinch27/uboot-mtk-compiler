@@ -11,11 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        config:
-          [
+        config: [
             {
               workflow: "build-u-boot",
-              openwrt_branch: "u-boot",
+              # openwrt_branch: "u-boot",
               device_branch: "all",
             },
           ]
@@ -31,7 +30,7 @@ jobs:
           {
             "ref": "main",
             "inputs": {
-              "openwrt_branch": "${{ matrix.config.openwrt_branch }}",
+              # "openwrt_branch": "${{ matrix.config.openwrt_branch }}",
               "device_branch": "${{ matrix.config.device_branch }}"
             }
           }'
