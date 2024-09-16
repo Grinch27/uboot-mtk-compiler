@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Trigger workflow
-        id: build
+        id: trigger
         env:
           workflow: ${{ matrix.config.workflow }}
         working-directory: /
