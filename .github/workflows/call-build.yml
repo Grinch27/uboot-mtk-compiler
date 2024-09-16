@@ -17,17 +17,18 @@ jobs:
       - name: Trigger workflow
         id: trigger
         env:
+          branch: "main"
           workflow: ${{ matrix.config.workflow }}
         working-directory: /
         run: |
           # Create base JSON using jq
           data=$(jq -n \
             --arg device_branch "${{ matrix.config.device_branch }}" \
-            '{ ref: "main", inputs: { device_branch: $device_branch } }')
+            '{ ref: "${{ env.branch }}", inputs: { device_branch: $device_branch } }')
 
           # Output the final JSON data for debugging (optional)
           echo "$data" | jq .
-          
+
           # Use the generated data with curl
           curl -X POST \
             -H "Accept: application/vnd.github.v3+json" \
