@@ -49,7 +49,7 @@ on:
 
 env:
   device_branch: ${{ inputs.device_branch || 'all' }}
-  app_branch: 'u-boot'
+  app_branch: "u-boot"
 
 jobs:
   build:
@@ -103,41 +103,73 @@ jobs:
 
       - name: Clear environment
         id: clearinit
-        if: ${{ 'true' == 'false' }} # disable
+        # if: ${{ 'true' == 'false' }} # disable
         env:
           DEBIAN_FRONTEND: noninteractive
         working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
+
+          docker image list
           # 删除docker所有镜像
-          docker rmi $(docker images -q) 2>/dev/null
+          # for image in $(docker images -q); do
+          #   docker rmi -f $image
+          # done
+          # 删除所有不再使用的 docker 镜像、容器、网络和数据卷
+          docker image prune -a
+
           # 如果环境变量 AGENT_TOOLSDIRECTORY 不为空，则删除该目录及其所有内容
           [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
           # 删除指定的目录及其所有内容，忽略所有错误信息
-          sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
+          # sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
           # 关闭所有交换空间 删除指定的交换文件
           sudo swapoff -a
           sudo rm -f /swapfile /mnt/swapfile
 
-          # 删除所有不再需要的软件包及其配置文件, 清理 apt 的缓存
+          # ===== Remove snap =====
+          for p in $(snap list | awk '{print $1}'); do
+            sudo snap remove $p
+          done
+          sudo systemctl stop snapd
+          sudo systemctl disable --now snapd.socket
+          sudo apt-get -qq -y autoremove --purge snapd
+          sudo rm -rf ~/snap
+          sudo rm -rf /snap
+          sudo rm -rf /var/snap
+          sudo rm -rf /var/lib/snapd
+          sudo rm -rf /var/cache/snapd
+          sudo bash -c 'cat <<EOF > /etc/apt/preferences.d/nosnap.pref
+          Package: snapd
+          Pin: release a=*
+          Pin-Priority: -10
+          EOF'
+
+          # ===== Clean apt =====
           packages_purge=(
-            "azure-cli*"
             "docker*"
             "ghc*"
             "zulu*"
-            "llvm*"
-            "firefox"
             "google*"
+            "firefox*"
             "dotnet*"
-            "powershell"
+            "powershell*"
             "openjdk*"
             "mongodb*"
             "moby*"
+            "mysql*"
+            "postgresql*"
+            "sqlite3*"
+            "apache2*"
+            "nginx*"
+            "php*"
           )
           sudo -E apt-get -qq -y update
           sudo -E apt-get -qq -y purge "${packages_purge[@]}" || true
-          # sudo -E apt-get -qq -y autoremove --purge
-          # sudo -E apt-get -qq clean
+          sudo -E apt-get -qq -y autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo -E systemctl daemon-reload
+          apt list --installed
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
 
           df -Th
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -430,7 +462,7 @@ jobs:
             ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
             ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
           )
-          
+
           # ===== Backup Target Repository =====
           backup_repo() {
             local ORIGINAL_DIR="$PWD"
@@ -485,7 +517,7 @@ jobs:
             SOC=${SOC} BOARD=${BOARD} MULTI_LAYOUT=${MULTI_LAYOUT} FIXED_MTDPARTS=${FIXED_MTDPARTS} ./build.sh
             cp -rf ./output/* ${path_output}
           }
-          
+
           # ===== main function =====
           main() {
             mkdir -p ${path_output}
