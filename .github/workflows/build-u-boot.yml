@@ -4,13 +4,6 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
-      # app_branch:
-      #   description: "Select openwrt branch"
-      #   required: true
-      #   default: "u-boot"
-      #   type: choice
-      #   options:
-      #     - u-boot
       device_branch:
         description: "Select device branch"
         required: true
@@ -261,31 +254,31 @@ jobs:
             "make"
           )
           packages_slim=(
-            "bc" \
-            "bison" \
-            "build-essential" \
-            "ca-certificates" \
-            "curl" \
-            "flex" \
-            "gcc-aarch64-linux-gnu" \
-            "git" \
-            "git-lfs" \
-            "gnupg" \
-            "gperf" \
-            "libelf-dev" \
-            "lz4" \
-            "libssl-dev" \
-            "libxml2" \
-            "libxml2-utils" \
-            "lzop" \
-            "make" \
-            "python3" \
-            "rsync" \
-            "schedtool" \
-            "squashfs-tools" \
-            "vim" \
-            "xsltproc" \
-            "zip" \
+            "bc"
+            "bison"
+            "build-essential"
+            "ca-certificates"
+            "curl"
+            "flex"
+            "gcc-aarch64-linux-gnu"
+            "git"
+            "git-lfs"
+            "gnupg"
+            "gperf"
+            "libelf-dev"
+            "lz4"
+            "libssl-dev"
+            "libxml2"
+            "libxml2-utils"
+            "lzop"
+            "make"
+            "python3"
+            "rsync"
+            "schedtool"
+            "squashfs-tools"
+            "vim"
+            "xsltproc"
+            "zip"
             "zlib1g-dev"
           )
           sudo -E apt-get -y -qq update
