@@ -260,12 +260,37 @@ jobs:
             "libdb++-dev"
             "make"
           )
-          packages_extra=(
-            "gcc-aarch64-linux-gnu"
+          packages_slim=(
+            "bc" \
+            "bison" \
+            "build-essential" \
+            "ca-certificates" \
+            "curl" \
+            "flex" \
+            "gcc-aarch64-linux-gnu" \
+            "git" \
+            "git-lfs" \
+            "gnupg" \
+            "gperf" \
+            "libelf-dev" \
+            "lz4" \
+            "libssl-dev" \
+            "libxml2" \
+            "libxml2-utils" \
+            "lzop" \
+            "make" \
+            "python3" \
+            "rsync" \
+            "schedtool" \
+            "squashfs-tools" \
+            "vim" \
+            "xsltproc" \
+            "zip" \
+            "zlib1g-dev"
           )
           sudo -E apt-get -y -qq update
-          sudo -E apt-get -y -qq install "${packages_install[@]}"
-          sudo -E apt-get -y -qq install "${packages_extra[@]}"
+          # sudo -E apt-get -y -qq install "${packages_install[@]}"
+          sudo -E apt-get -y -qq install "${packages_slim[@]}"
           sudo -E systemctl daemon-reload
           # sudo -E apt-get -y -qq autoremove --purge
           # sudo -E apt-get -qq clean
