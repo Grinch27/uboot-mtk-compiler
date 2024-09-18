@@ -259,6 +259,8 @@ jobs:
             "ca-certificates"
             "curl"
             "flex"
+            "gcc"
+            "g++"
             "gcc-aarch64-linux-gnu"
             "git"
             "git-lfs"
