@@ -599,6 +599,7 @@ jobs:
         if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
         env:
           category: "files"
+          target_ext: "bin"
         working-directory: ${{ env.path_output }}
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -607,7 +608,7 @@ jobs:
           ls -al ./
 
           metadata='{"${{ env.category }}":[]}'
-          for file in ./*.bin; do
+          for file in ./*.${{ env.target_ext }}; do
             if [[ ! -d "${file}" ]]; then
               read -r checksum filename <<< "$(sha256sum "${file}")"
               filename=$(basename "${filename}")
