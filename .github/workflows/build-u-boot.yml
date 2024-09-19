@@ -48,8 +48,6 @@ jobs:
   build:
     name: Build U-Boot
     runs-on: ubuntu-24.04
-    env:
-      metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
     steps:
       - name: Set environment variable - ${{ env.app_branch }} - ${{ env.device_branch }}
         id: var
@@ -74,7 +72,7 @@ jobs:
           path_backup="${path_build}/${dir_backup}"
 
           path_diy="${path_build}/${dir_diy}"
-          release_md="${path_build}/release.md"
+          # release_md="${path_build}/release.md"
 
           # ========== GITHUB_ENV ==========
           env_vars=(
@@ -86,8 +84,8 @@ jobs:
             "path_output"
             "path_backup"
             "path_diy"
-            "release_md"
           )
+          # "release_md"
           for var in "${env_vars[@]}"; do
             echo "${var}=${!var}" | tee -a $GITHUB_ENV
           done
@@ -596,15 +594,14 @@ jobs:
 
       - name: Setup output
         id: output
-        if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
+        # if: ${{ 'true' == 'false' }} # disable
         env:
+          metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
           category: "files"
           target_ext: "bin"
         working-directory: ${{ env.path_output }}
         run: |
           echo -e "Current working directory: $(pwd)"
-
-          # rm -rf packages
           ls -al ./
 
           metadata='{"${{ env.category }}":[]}'
@@ -621,20 +618,22 @@ jobs:
           echo "metadata=${metadata}"
           echo "${metadata}" | jq . > ${{ env.metadata_sum_path }}
 
-          echo -e "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
-          echo "status=success" >> ${GITHUB_OUTPUT}
+          echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
+          echo "metadata_sum_path=${metadata_sum_path}" | tee -a ${GITHUB_OUTPUT}
+          echo "status=success" | tee -a ${GITHUB_OUTPUT}
 
-      - name: "[release.md] Record release.md"
-        id: record
+      - name: (release.md) Generate
+        id: release-md
         env:
-          release_md: ${{ env.release_md }}
+          release_md: "${{ github.workspace }}/release.md"
+          metadata_sum_path: ${{ steps.output.outputs.metadata_sum_path }}
         working-directory: ${{ env.path_target }}
         run: |
           printf "Current working directory: %s\n" "$(pwd)"
 
-          release_md_dir=$(dirname ${release_md})
+          release_md_dir=$(dirname ${{ env.release_md }})
           mkdir -p ${release_md_dir}
-          : > ${release_md}
+          : > ${{ env.release_md }}
 
           record_to_markdown() {
             local title="$1"
@@ -644,9 +643,9 @@ jobs:
 
             if [[ -n "${code_block}" ]]; then
               format="\n### %s\n\n<details>\n<summary>%s</summary>\n\n\`\`\`%s\n%s\n\`\`\`\n\n</details>\n"
-              printf "${format}" "${title}" "${title}" "${code_block}" "${content}" | tee -a ${release_md}
+              printf "${format}" "${title}" "${title}" "${code_block}" "${content}" | tee -a ${{ env.release_md }}
             else
-              printf "${format}" "${title}" "${content}" | tee -a ${release_md}
+              printf "${format}" "${title}" "${content}" | tee -a ${{ env.release_md }}
             fi
           }
 
@@ -657,8 +656,9 @@ jobs:
           sum_json_content=$(jq '.' "${{ env.metadata_sum_path }}")
           record_to_markdown "sha256sum" "${sum_json_content}" "json"
 
-          cat ${release_md}
-          echo "status=success" >> ${GITHUB_OUTPUT}
+          cat ${{ env.release_md }}
+          echo "release_md=${release_md}" | tee -a ${GITHUB_OUTPUT}
+          echo "status=success" | tee -a ${GITHUB_OUTPUT}
 
       - name: Upload OpenWrt to Release
         id: release
@@ -666,6 +666,8 @@ jobs:
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         env:
           timestamp: ${{ steps.output.outputs.timestamp }}
+          target_ext: "tar"
+          release_md: ${{ steps.release-md.outputs.release_md }}
         with:
           name: "${{ env.app_branch }}_${{ env.timestamp }}"
           tag: "${{ env.app_branch }}"
