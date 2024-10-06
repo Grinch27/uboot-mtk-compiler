@@ -463,15 +463,21 @@ jobs:
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: record Target Repo Version
-        id: record
+      - name: Version of Target Repo 
+        id: version-target
         working-directory: ${{ env.path_target }}
         run: |
           echo -e "Current working directory: $(pwd)"
-          git describe --tags --long
-          # tag_release=$(git describe --tags --long)
-          git rev-parse --short HEAD
-          tag_release=$(git rev-parse --short HEAD)
+
+          # ===== Record Target Repository Version =====
+          # git describe --tags --long
+          version_describe=$(git describe --tags --long)
+          echo "version_describe=${version_describe}"
+          # git rev-parse --short HEAD
+          version_rev_parse=$(git rev-parse --short HEAD)
+          echo "version_rev_parse=${version_rev_parse}"
+          
+          tag_release=${version_describe}
 
           echo "tag_release=${tag_release}" | tee -a $GITHUB_ENV
           echo "status=success" >> ${GITHUB_OUTPUT}
