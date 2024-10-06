@@ -457,7 +457,8 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${repo_target} ${path_target} --single-branch --depth=1 --branch=${repo_target_branch} 
+          # Clone target repository: without --depth=1
+          git clone ${repo_target} ${path_target} --single-branch --branch=${repo_target_branch} 
           echo -e "repo_target: [ ${repo_target} ]\nBRANCH: [ ${repo_target_branch} ]"
 
           df -hT ${PWD}
@@ -483,7 +484,7 @@ jobs:
           echo "version_count=${version_count}"
 
           # ----- git rev-parse --abbrev-ref HEAD -> master -----
-          version_version_branch=$(git rev-parse --abbrev-ref HEAD)
+          version_branch=$(git rev-parse --abbrev-ref HEAD)
           echo "version_branch=${version_branch}"
           
           # ----- DIY -----
