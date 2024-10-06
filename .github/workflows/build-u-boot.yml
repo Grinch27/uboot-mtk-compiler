@@ -468,10 +468,11 @@ jobs:
         working-directory: ${{ env.path_target }}
         run: |
           echo -e "Current working directory: $(pwd)"
+          set -x
 
           # ===== Record Target Repository Version =====
           # git describe --all --long
-          version_describe=$(git describe --tags --long)
+          version_describe=$(git describe --all --long)
           echo "version_describe=${version_describe}"
           # git rev-parse --short HEAD
           version_rev_parse=$(git rev-parse --short HEAD)
