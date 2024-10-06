@@ -479,7 +479,7 @@ jobs:
           version_short=$(git rev-parse --short HEAD)
           echo "version_short=${version_short}"
 
-          # ----- git rev-list --count HEAD -> 1000 ----- only work without --depth=1
+          # ----- git rev-list --count HEAD -> 1000 ----- !!! work without --depth=1
           version_count=$(git rev-list --count HEAD)
           echo "version_count=${version_count}"
 
@@ -491,7 +491,7 @@ jobs:
           tag_release="${version_branch}-${version_count}-${version_short}"
 
           echo "tag_release=${tag_release}" | tee -a $GITHUB_ENV
-          echo "status=success" >> ${GITHUB_OUTPUT}
+          echo "status=success" | tee -a ${GITHUB_OUTPUT}
 
       - name: Clone DIY
         id: clonediy
