@@ -472,7 +472,7 @@ jobs:
 
           # ===== Record Target Repository Version =====
           # git describe --all --long
-          version_describe=$(git describe --all --long)
+          version_describe=$(git describe --all --long | cut -d'/' -f2-)
           echo "version_describe=${version_describe}"
           # git rev-parse --short HEAD
           version_rev_parse=$(git rev-parse --short HEAD)
