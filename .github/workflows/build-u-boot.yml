@@ -39,6 +39,7 @@ on:
           - newland_nl-wr9103
           - cmcc_xr30
           - cmcc_xr30-emmc
+          - zyxel-ex5700
       custom_env:
         description: "key=value;key=value"
         type: string
@@ -53,7 +54,7 @@ env:
 jobs:
   build:
     name: Build U-Boot
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-lastest
     steps:
       - name: Set environment variable - ${{ env.app_branch }} - ${{ env.device_branch }}
         id: var
@@ -540,6 +541,7 @@ jobs:
             ["newland_nl-wr9103"]="mt7981|0,1|0,1" # Newland NL-WR9103 [with MULTI_LAYOUT]
             ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
             ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
+            ["zyxel-ex5700"]="mt7986|0|0,1" # Zyxel EX5700
           )
 
           # ===== Backup Target Repository =====
