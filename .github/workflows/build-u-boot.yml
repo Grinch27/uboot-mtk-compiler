@@ -39,10 +39,16 @@ on:
           - newland_nl-wr9103
           - cmcc_xr30
           - cmcc_xr30-emmc
+      custom_env:
+        description: "key=value;key=value"
+        type: string
+        required: false
+        default: ""
 
 env:
   device_branch: ${{ inputs.device_branch || 'all' }}
   app_branch: "u-boot"
+  custom_env: ${{ inputs.custom_env || '' }}
 
 jobs:
   build:
@@ -91,6 +97,15 @@ jobs:
           done
 
           echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Load Custom Environment Variables
+        id: env-custom
+        if: ${{ env.custom_env != '' }}
+        env:
+          flag_split: ";"
+        working-directory: /
+        run: |
+          echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
 
       - name: Clear environment
         id: clearinit
@@ -446,6 +461,19 @@ jobs:
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
+      - name: record Target Repo Version
+        id: record
+        working-directory: ${{ env.path_target }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          # git describe --tags --long
+          # tag_release=$(git describe --tags --long)
+          git rev-parse --short HEAD
+          tag_release=$(git rev-parse --short HEAD)
+
+          echo "tag_release=success" | tee -a $GITHUB_ENV
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
       - name: Clone DIY
         id: clonediy
         # if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
@@ -669,9 +697,10 @@ jobs:
           timestamp: ${{ steps.output.outputs.timestamp }}
           target_ext: "tar"
           release_md: ${{ steps.release-md.outputs.release_md }}
+          tag_release: ${{ env.tag_release || env.app_branch }}
         with:
           name: "${{ env.app_branch }}_${{ env.timestamp }}"
-          tag: "${{ env.app_branch }}"
+          tag: "${{ env.tag_release }}"
           artifacts: "${{ env.path_output }}/*"
           allowUpdates: true
           removeArtifacts: false
