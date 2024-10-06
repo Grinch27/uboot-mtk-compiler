@@ -48,15 +48,16 @@ on:
 
 env:
   device_branch: ${{ inputs.device_branch || 'all' }}
-  app_branch: "u-boot"
   custom_env: ${{ inputs.custom_env || '' }}
 
 jobs:
   build:
     name: Build U-Boot
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      app_branch: "u-boot"
     steps:
-      - name: Set environment variable - ${{ env.app_branch }} - ${{ env.device_branch }}
+      - name: Set environment variable - ${{ env.device_branch }}
         id: var
         working-directory: /
         run: |
@@ -701,7 +702,7 @@ jobs:
           release_md: ${{ steps.release-md.outputs.release_md }}
           tag_release: ${{ env.tag_release || env.app_branch }}
         with:
-          name: "${{ env.app_branch }}_${{ env.timestamp }}"
+          name: "${{ env.timestamp }}_${{ env.tag_release }}"
           tag: "${{ env.tag_release }}"
           artifacts: "${{ env.path_output }}/*"
           allowUpdates: true
