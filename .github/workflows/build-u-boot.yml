@@ -470,7 +470,7 @@ jobs:
           echo -e "Current working directory: $(pwd)"
 
           # ===== Record Target Repository Version =====
-          # git describe --tags --long
+          # git describe --all --long
           version_describe=$(git describe --tags --long)
           echo "version_describe=${version_describe}"
           # git rev-parse --short HEAD
