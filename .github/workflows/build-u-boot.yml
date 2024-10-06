@@ -471,7 +471,7 @@ jobs:
           git rev-parse --short HEAD
           tag_release=$(git rev-parse --short HEAD)
 
-          echo "tag_release=success" | tee -a $GITHUB_ENV
+          echo "tag_release=${tag_release}" | tee -a $GITHUB_ENV
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Clone DIY
