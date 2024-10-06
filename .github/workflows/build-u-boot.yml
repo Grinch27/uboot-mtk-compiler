@@ -54,7 +54,7 @@ env:
 jobs:
   build:
     name: Build U-Boot
-    runs-on: ubuntu-lastest
+    runs-on: ubuntu-latest
     steps:
       - name: Set environment variable - ${{ env.app_branch }} - ${{ env.device_branch }}
         id: var
