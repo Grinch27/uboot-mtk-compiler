@@ -475,19 +475,19 @@ jobs:
           gitlocal_describe=$(git describe --all --long | cut -d'/' -f2-)
           echo "gitlocal_describe=${gitlocal_describe}"
 
-          # ----- git rev-parse --abbrev-ref HEAD -> master -----
+          # ----- branch: git rev-parse --abbrev-ref HEAD -> master -----
           gitlocal_branch=$(git rev-parse --abbrev-ref HEAD)
           echo "gitlocal_branch=${gitlocal_branch}"
 
-          # ----- git rev-parse --short HEAD -> f5b6b6d -----
+          # ----- short hash: git rev-parse --short HEAD -> f5b6b6d -----
           gitlocal_short=$(git rev-parse --short HEAD)
           echo "gitlocal_short=${gitlocal_short}"
 
-          # ----- full hash -----
+          # ----- full hash: git rev-parse HEAD -----
           gitlocal_hash=$(git rev-parse HEAD)
           echo "gitlocal_hash=${gitlocal_hash}"
 
-          # ----- git rev-list --count HEAD -> 1000 ----- !!! work without --depth=1
+          # ----- commit count: git rev-list --count HEAD -> 1000 ----- !!! work without --depth=1
           gitlocal_count=$(git rev-list --count HEAD)
           echo "gitlocal_count=${gitlocal_count}"
           
