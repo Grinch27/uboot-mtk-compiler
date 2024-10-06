@@ -470,15 +470,24 @@ jobs:
           echo -e "Current working directory: $(pwd)"
           set -x
 
-          # ===== Record Target Repository Version =====
-          # git describe --all --long
+          # ----- git describe --all --long -> refs/heads/master-0-gf5b6b6d -----
           version_describe=$(git describe --all --long | cut -d'/' -f2-)
           echo "version_describe=${version_describe}"
-          # git rev-parse --short HEAD
-          version_rev_parse=$(git rev-parse --short HEAD)
-          echo "version_rev_parse=${version_rev_parse}"
+
+          # ----- git rev-parse --short HEAD -> f5b6b6d -----
+          version_short=$(git rev-parse --short HEAD)
+          echo "version_short=${version_short}"
+
+          # ----- git rev-list --count HEAD -> 1000 -----
+          version_count=$(git rev-list --count HEAD)
+          echo "version_count=${version_count}"
+
+          # ----- git rev-parse --abbrev-ref HEAD -> master -----
+          version_version_branch=$(git rev-parse --abbrev-ref HEAD)
+          echo "version_branch=${version_branch}"
           
-          tag_release=${version_describe}
+          # ----- DIY -----
+          tag_release="${version_branch}-${version_count}-${version_short}"
 
           echo "tag_release=${tag_release}" | tee -a $GITHUB_ENV
           echo "status=success" >> ${GITHUB_OUTPUT}
