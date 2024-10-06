@@ -479,7 +479,7 @@ jobs:
           version_short=$(git rev-parse --short HEAD)
           echo "version_short=${version_short}"
 
-          # ----- git rev-list --count HEAD -> 1000 -----
+          # ----- git rev-list --count HEAD -> 1000 ----- only work without --depth=1
           version_count=$(git rev-list --count HEAD)
           echo "version_count=${version_count}"
 
