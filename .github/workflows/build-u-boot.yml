@@ -467,7 +467,7 @@ jobs:
         working-directory: ${{ env.path_target }}
         run: |
           echo -e "Current working directory: $(pwd)"
-          # git describe --tags --long
+          git describe --tags --long
           # tag_release=$(git describe --tags --long)
           git rev-parse --short HEAD
           tag_release=$(git rev-parse --short HEAD)
