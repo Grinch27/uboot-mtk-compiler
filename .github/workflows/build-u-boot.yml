@@ -472,23 +472,23 @@ jobs:
           set -x
 
           # ----- git describe --all --long -> refs/heads/master-0-gf5b6b6d -----
-          version_describe=$(git describe --all --long | cut -d'/' -f2-)
-          echo "version_describe=${version_describe}"
+          gitlocal_describe=$(git describe --all --long | cut -d'/' -f2-)
+          echo "gitlocal_describe=${gitlocal_describe}"
 
           # ----- git rev-parse --short HEAD -> f5b6b6d -----
-          version_short=$(git rev-parse --short HEAD)
-          echo "version_short=${version_short}"
+          gitlocal_short=$(git rev-parse --short HEAD)
+          echo "gitlocal_short=${gitlocal_short}"
 
           # ----- git rev-list --count HEAD -> 1000 ----- !!! work without --depth=1
-          version_count=$(git rev-list --count HEAD)
-          echo "version_count=${version_count}"
+          gitlocal_count=$(git rev-list --count HEAD)
+          echo "gitlocal_count=${gitlocal_count}"
 
           # ----- git rev-parse --abbrev-ref HEAD -> master -----
-          version_branch=$(git rev-parse --abbrev-ref HEAD)
-          echo "version_branch=${version_branch}"
+          gitlocal_branch=$(git rev-parse --abbrev-ref HEAD)
+          echo "gitlocal_branch=${gitlocal_branch}"
           
           # ----- DIY -----
-          tag_release="${version_branch}-${version_count}-${version_short}"
+          tag_release="${gitlocal_branch}-${gitlocal_count}-${gitlocal_short}"
 
           echo "tag_release=${tag_release}" | tee -a $GITHUB_ENV
           echo "status=success" | tee -a ${GITHUB_OUTPUT}
