@@ -50,12 +50,13 @@ env:
   device_branch: ${{ inputs.device_branch || 'all' }}
   custom_env: ${{ inputs.custom_env || '' }}
 
+run-name: U-Boot - ${{ env.device_branch }}
 jobs:
   build:
-    name: Build U-Boot
+    name: Build U-Boot - ${{ env.device_branch }}
     runs-on: ubuntu-24.04
     env:
-      app_branch: "u-boot"
+      app_branch: "uboot"
     steps:
       - name: Set environment variable - ${{ env.device_branch }}
         id: var
