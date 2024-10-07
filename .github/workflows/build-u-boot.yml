@@ -46,11 +46,12 @@ on:
         required: false
         default: ""
 
+run-name: U-Boot - ${{ inputs.device_branch || 'all' }}
+
 env:
   device_branch: ${{ inputs.device_branch || 'all' }}
   custom_env: ${{ inputs.custom_env || '' }}
 
-run-name: U-Boot - ${{ inputs.device_branch || 'all' }}
 jobs:
   build:
     name: Build U-Boot - ${{ env.device_branch }}
