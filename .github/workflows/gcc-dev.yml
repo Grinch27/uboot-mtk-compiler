@@ -121,6 +121,7 @@ jobs:
         working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
+          set -x
 
           echo "CC=gcc-${{ env.GCC_version }}" | tee -a $GITHUB_ENV
           echo "CXX=g++-${{ env.GCC_version }}" | tee -a $GITHUB_ENV
