@@ -40,6 +40,9 @@ on:
           - cmcc_xr30
           - cmcc_xr30-emmc
           - zyxel_ex5700
+          - openembed_som7981
+          - glinet_gl-mt3000
+          - glinet_gl-mt2500
       custom_env:
         description: "key=value;key=value"
         type: string
@@ -582,6 +585,9 @@ jobs:
             ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
             ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
             ["zyxel_ex5700"]="mt7986|0|0,1" # Zyxel EX5700
+            ["openembed_som7981"]="mt7981|0|0,1" # openembed som7981
+            ["glinet_gl-mt3000"]="mt7981|0|0,1" # glinet gl-mt3000
+            ["glinet_gl-mt2500"]="mt7981|0|0,1" # glinet gl-mt2500
           )
 
           # ===== Backup Target Repository =====
