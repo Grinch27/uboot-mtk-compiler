@@ -343,7 +343,7 @@ jobs:
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Version Switch for GNU C++ & AArch64 Cross-Compiler
+      - name: Switch for GNU C++ & AArch64 Cross-Compiler
         id: switch-gcc
         # if: ${{ 'true' == 'false' }} # disable
         env:
