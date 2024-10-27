@@ -562,7 +562,7 @@ jobs:
             ["newland_nl-wr9103"]="mt7981|0,1|0,1" # Newland NL-WR9103 [with MULTI_LAYOUT]
             ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
             ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
-            # ["zyxel-ex5700"]="mt7986a|0|0,1" # Zyxel EX5700
+            ["zyxel-ex5700"]="mt7986|0|0,1" # Zyxel EX5700
           )
 
           # ===== Backup Target Repository =====
