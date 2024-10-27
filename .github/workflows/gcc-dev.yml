@@ -31,7 +31,7 @@ jobs:
         # if: ${{ 'true' == 'false' }} # disable
         env:
           DEBIAN_FRONTEND: noninteractive
-          gcc_version: ${{ env.gcc_version }}
+          gcc_version: ${{ env.gcc_version || '14' }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
