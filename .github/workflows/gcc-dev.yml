@@ -155,6 +155,7 @@ jobs:
               sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-cpp aarch64-linux-gnu-cpp /usr/bin/aarch64-linux-gnu-cpp-${version} ${version}
             fi
           done
+          sudo update-alternatives --query aarch64-linux-gnu-gcc
           
           # 切换到所需版本
           sudo update-alternatives --set gcc /usr/bin/gcc-${selected_version}
