@@ -112,8 +112,8 @@ jobs:
         run: |
           echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
 
-      - name: Switch GNU C++ Version and Setup AArch64 Cross-Compiler
-        id: gcc-switch
+      - name: Version Switch for GNU C++ & AArch64 Cross-Compiler
+        id: switch-gcc
         # if: ${{ 'true' == 'false' }} # disable
         env:
           DEBIAN_FRONTEND: noninteractive
