@@ -154,8 +154,12 @@ jobs:
             if [ -f /usr/bin/gcc-ranlib-${version} ]; then
               sudo update-alternatives --install /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-${version} ${version}
             fi
+            # Aarch64
             if [ -f /usr/bin/gcc-${version}-aarch64-linux-gnu ]; then
               sudo update-alternatives --install /usr/bin/gcc-aarch64-linux-gnu gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu ${version}
+            fi
+            if [ -f /usr/bin/cpp-${version}-aarch64-linux-gnu ]; then
+              sudo update-alternatives --install /usr/bin/cpp-aarch64-linux-gnu cpp-aarch64-linux-gnu /usr/bin/cpp-${selected_version}-aarch64-linux-gnu ${version}
             fi
           done
           sudo update-alternatives --query gcc
@@ -176,6 +180,7 @@ jobs:
           sudo update-alternatives --set gcc-nm /usr/bin/gcc-nm-${selected_version}
           sudo update-alternatives --set gcc-ranlib /usr/bin/gcc-ranlib-${selected_version}
           sudo update-alternatives --set gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu
+          sudo update-alternatives --set cpp-aarch64-linux-gnu /usr/bin/cpp-${selected_version}-aarch64-linux-gnu
           # G++
           sudo update-alternatives --set g++ /usr/bin/g++-${selected_version}
           echo "Switched to GCC/G++ version ${selected_version}."
