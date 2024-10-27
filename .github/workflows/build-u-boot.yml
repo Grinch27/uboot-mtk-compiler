@@ -350,7 +350,10 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
           selected_version: 14
         run: |
-          # 定义要安装的包，包括通用GCC/G++和AArch64包
+          echo -e "Current working directory: $(pwd)"
+
+          sudo -E apt-get -yqq update
+
           packages_install=(
             "gcc-${selected_version}"
             "g++-${selected_version}"
@@ -359,16 +362,18 @@ jobs:
             "gcc-${selected_version}-aarch64-linux-gnu"
             "cpp-${selected_version}-aarch64-linux-gnu"
           )
-          
-          # 更新并安装包
-          sudo -E apt-get -yqq update
           sudo -E apt-get -yqq install "${packages_install[@]}"
           
-          # 列出安装的版本
-          ls /usr/bin/gcc-* /usr/bin/g++-* /usr/bin/aarch64-linux-gnu-*
-
           # 设置 update-alternatives 以管理不同版本的GCC、G++和AArch64工具
-          for tool in gcc gcc-ar gcc-nm gcc-ranlib g++; do
+          ls /usr/bin/gcc-* /usr/bin/g++-*
+          tools_gcc=(
+            "gcc"
+            "gcc-ar"
+            "gcc-nm"
+            "gcc-ranlib"
+            "g++"
+          )
+          for tool in "${tools_gcc[@]}"; do
             versions=$(ls /usr/bin/${tool}-* | grep -Eo '[0-9]+$' | sort -u)
             for version in ${versions}; do
               sudo update-alternatives --install /usr/bin/${tool} ${tool} /usr/bin/${tool}-${version} ${version}
@@ -376,29 +381,40 @@ jobs:
           done
           sudo update-alternatives --query gcc
           sudo update-alternatives --query g++
-
-          # AArch64专用设置
-          for version in ${versions}; do
-            if [ -f /usr/bin/aarch64-linux-gnu-gcc-${version} ]; then
-              sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-${version} ${version}
-            fi
-            if [ -f /usr/bin/aarch64-linux-gnu-cpp-${version} ]; then
-              sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-cpp aarch64-linux-gnu-cpp /usr/bin/aarch64-linux-gnu-cpp-${version} ${version}
-            fi
-          done
-          
           # 切换到所需版本
-          sudo update-alternatives --set gcc /usr/bin/gcc-${selected_version}
-          sudo update-alternatives --set gcc-ar /usr/bin/gcc-ar-${selected_version}
-          sudo update-alternatives --set gcc-nm /usr/bin/gcc-nm-${selected_version}
-          sudo update-alternatives --set gcc-ranlib /usr/bin/gcc-ranlib-${selected_version}
-          sudo update-alternatives --set g++ /usr/bin/g++-${selected_version}
-          sudo update-alternatives --set aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-${selected_version}
-          sudo update-alternatives --set aarch64-linux-gnu-cpp /usr/bin/aarch64-linux-gnu-cpp-${selected_version}
-
+          for tool in "${tools_gcc[@]}"; do
+            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
+          done
           # 验证版本
           gcc --version
           g++ --version
+
+          # AArch64专用设置，涵盖所有带版本号的aarch64-linux-gnu工具
+          ls /usr/bin/aarch64-linux-gnu-*
+          tools_aarch64=(
+            "aarch64-linux-gnu-gcc"
+            "aarch64-linux-gnu-cpp"
+            "aarch64-linux-gnu-gcc-ar"
+            "aarch64-linux-gnu-gcc-nm"
+            "aarch64-linux-gnu-gcc-ranlib"
+            "aarch64-linux-gnu-gcov"
+            "aarch64-linux-gnu-gcov-dump"
+            "aarch64-linux-gnu-gcov-tool"
+            "aarch64-linux-gnu-lto-dump"
+          )
+          for tool in "${tools_aarch64[@]}"; do
+            versions=$(ls /usr/bin/${tool}-* 2>/dev/null | grep -Eo '[0-9]+$' | sort -u)
+            for version in ${versions}; do
+              sudo update-alternatives --install /usr/bin/${tool} ${tool} /usr/bin/${tool}-${version} ${version}
+            done
+          done
+          sudo update-alternatives --query aarch64-linux-gnu-gcc
+          # 切换到所需版本
+          for tool in "${tools_aarch64[@]}"; do
+            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
+          done
+
+          # 验证版本
           aarch64-linux-gnu-gcc --version
 
           echo "Switched to GCC/G++ and AArch64 GCC version ${selected_version}."
@@ -565,7 +581,7 @@ jobs:
             ["newland_nl-wr9103"]="mt7981|0,1|0,1" # Newland NL-WR9103 [with MULTI_LAYOUT]
             ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
             ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
-            ["zyxel-ex5700"]="mt7986|0|0,1" # Zyxel EX5700
+            ["zyxel-ex5700"]="mt7986a|0|0,1" # Zyxel EX5700
           )
 
           # ===== Backup Target Repository =====
