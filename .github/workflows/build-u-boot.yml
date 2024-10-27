@@ -111,6 +111,38 @@ jobs:
         run: |
           echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
 
+      - name: Clean Snap
+        id: clean-snap
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          sudo -E apt-get -qq -y update
+          sudo snap list
+
+          # ===== Remove snap =====
+          for p in $(snap list | awk '{print $1}'); do
+            sudo snap remove $p
+          done
+          sudo systemctl stop snapd
+          sudo systemctl disable --now snapd.socket
+          sudo apt-get -qq -y autoremove --purge snapd
+          sudo rm -rf ~/snap
+          sudo rm -rf /snap
+          sudo rm -rf /var/snap
+          sudo rm -rf /var/lib/snapd
+          sudo rm -rf /var/cache/snapd
+          sudo bash -c 'cat <<EOF > /etc/apt/preferences.d/nosnap.pref
+          Package: snapd
+          Pin: release a=*
+          Pin-Priority: -10
+          EOF'
+          sudo -E systemctl daemon-reload
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
       - name: Clear environment
         id: clearinit
         # if: ${{ 'true' == 'false' }} # disable
@@ -135,24 +167,6 @@ jobs:
           # 关闭所有交换空间 删除指定的交换文件
           sudo swapoff -a
           sudo rm -f /swapfile /mnt/swapfile
-
-          # ===== Remove snap =====
-          for p in $(snap list | awk '{print $1}'); do
-            sudo snap remove $p
-          done
-          sudo systemctl stop snapd
-          sudo systemctl disable --now snapd.socket
-          sudo apt-get -qq -y autoremove --purge snapd
-          sudo rm -rf ~/snap
-          sudo rm -rf /snap
-          sudo rm -rf /var/snap
-          sudo rm -rf /var/lib/snapd
-          sudo rm -rf /var/cache/snapd
-          sudo bash -c 'cat <<EOF > /etc/apt/preferences.d/nosnap.pref
-          Package: snapd
-          Pin: release a=*
-          Pin-Priority: -10
-          EOF'
 
           # ===== Clean apt =====
           packages_purge=(
@@ -371,9 +385,9 @@ jobs:
             if [ -f /usr/bin/gcc-ranlib-${version} ]; then
               sudo update-alternatives --install /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-${version} ${version}
             fi
-            # if [ -f /usr/bin/gcc-${version}-aarch64-linux-gnu ]; then
-            #   sudo update-alternatives --install /usr/bin/gcc-aarch64-linux-gnu gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu ${version}
-            # fi
+            if [ -f /usr/bin/gcc-${version}-aarch64-linux-gnu ]; then
+              sudo update-alternatives --install /usr/bin/gcc-aarch64-linux-gnu gcc-aarch64-linux-gnu /usr/bin/gcc-${selected_version}-aarch64-linux-gnu ${version}
+            fi
           done
           sudo update-alternatives --query gcc
 
