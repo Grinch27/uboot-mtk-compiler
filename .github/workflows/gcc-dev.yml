@@ -112,7 +112,7 @@ jobs:
         run: |
           echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
 
-      - name: Version Switch for GNU C++ & AArch64 Cross-Compiler
+      - name: Switch for GNU C++ & AArch64 Cross-Compiler
         id: switch-gcc
         # if: ${{ 'true' == 'false' }} # disable
         env:
