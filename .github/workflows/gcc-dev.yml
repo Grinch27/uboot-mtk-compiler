@@ -128,6 +128,7 @@ jobs:
           )
           packages_extra=(
             "gcc-${selected_version}-aarch64-linux-gnu"
+            "cpp-${selected_version}-aarch64-linux-gnu"
           )
           sudo -E apt-get -y -qq update
           sudo -E apt-get -y -qq install "${packages_install[@]}"
@@ -137,7 +138,7 @@ jobs:
           # List GCC version
           ls /usr/bin/gcc-*
           ls /usr/bin/g++-*
-          ls /usr/bin/aarch64-*linux-gnu-gcc
+          ls /usr/bin/aarch64-*
 
           # Setup update-alternatives for GCC
           gcc_version=$(ls /usr/bin/gcc-* | grep -oP '(?<=gcc-)\d+' | sort -u)
