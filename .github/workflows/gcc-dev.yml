@@ -4,53 +4,20 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
-      device_branch:
-        description: "Select device branch"
+      gcc_version:
+        description: 'GCC version'
         required: true
-        default: "all"
+        default: '14'
         type: choice
         options:
-          - all
-          - 360t7
-          - livinet_zr-3020
-          - cetron_ct3003
-          - jcg_q30
-          - konka_komi-a31
-          - wr30u
-          - imou_lc-hx3001
-          - clt_r30b1
-          - abt_asr3000
-          - cmcc_a10
-          - cmcc_rax3000m
-          - cmcc_rax3000m-emmc
-          - h3c_magic-nx30-pro
-          - ax3000t
-          - redmi_ax6000
-          - tplink_tl-xdr608x
-          - ruijie_rg-x60-pro
-          - jdcloud_re-cp-03
-          - glinet_gl-mt6000
-          - nokia_ea0326gmp
-          - ruijie_rg_x30e
-          - ruijie_rg_x30e_pro
-          - tplink_tl-xtr8488
-          - newland_nl-wr8103
-          - honor_fur-602
-          - newland_nl-wr9103
-          - cmcc_xr30
-          - cmcc_xr30-emmc
-          - zyxel-ex5700
-      custom_env:
-        description: "key=value;key=value"
-        type: string
-        required: false
-        default: ""
+          - '14'
+          - '13'
+          - '12'
 
-run-name: C++ Switch (Dev)
+run-name: GCC Switch to ${{ inputs.gcc_version || '14' }}
 
 env:
-  device_branch: ${{ inputs.device_branch || 'all' }}
-  custom_env: ${{ inputs.custom_env || '' }}
+  gcc_version: ${{ inputs.gcc_version || '14' }}
 
 jobs:
   build:
@@ -59,77 +26,24 @@ jobs:
     env:
       app_branch: "uboot"
     steps:
-      - name: Set environment variable - ${{ env.device_branch }}
-        id: var
-        if: ${{ 'true' == 'false' }} # disable
-        working-directory: /
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          # ========== Set repo branch ==========
-          repo_target="https://github.com/hanwckf/bl-mt798x"
-          repo_target_branch="master"
-          repo_diy="https://github.com/$GITHUB_REPOSITORY"
-
-          # ========== Build Path ==========
-          dir_build="builder"
-          dir_output="output"
-          dir_backup="backup"
-          dir_diy="DIY"
-          # ---------- / ----------
-          path_build="/${dir_build}"
-          path_target="${path_build}/${app_branch}"
-          path_output="${path_build}/${dir_output}"
-          path_backup="${path_build}/${dir_backup}"
-
-          path_diy="${path_build}/${dir_diy}"
-          # release_md="${path_build}/release.md"
-
-          # ========== GITHUB_ENV ==========
-          env_vars=(
-            "repo_target"
-            "repo_target_branch"
-            "repo_diy"
-            "path_build"
-            "path_target"
-            "path_output"
-            "path_backup"
-            "path_diy"
-          )
-          # "release_md"
-          for var in "${env_vars[@]}"; do
-            echo "${var}=${!var}" | tee -a $GITHUB_ENV
-          done
-
-          echo "status=success" | tee -a ${GITHUB_OUTPUT}
-
-      - name: Load Custom Environment Variables
-        id: env-custom
-        if: ${{ env.custom_env != '' }}
-        env:
-          flag_split: ";"
-        working-directory: /
-        run: |
-          echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
-
       - name: Switch for GNU C++ & AArch64 Cross-Compiler
         id: switch-gcc
         # if: ${{ 'true' == 'false' }} # disable
         env:
           DEBIAN_FRONTEND: noninteractive
-          selected_version: 14
+          gcc_version: ${{ env.gcc_version }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
           sudo -E apt-get -yqq update
 
           packages_install=(
-            "gcc-${selected_version}"
-            "g++-${selected_version}"
-            "gcc-${selected_version}-multilib"
-            "g++-${selected_version}-multilib"
-            "gcc-${selected_version}-aarch64-linux-gnu"
-            "cpp-${selected_version}-aarch64-linux-gnu"
+            "gcc-${gcc_version}"
+            "g++-${gcc_version}"
+            "gcc-${gcc_version}-multilib"
+            "g++-${gcc_version}-multilib"
+            "gcc-${gcc_version}-aarch64-linux-gnu"
+            "cpp-${gcc_version}-aarch64-linux-gnu"
           )
           sudo -E apt-get -yqq install "${packages_install[@]}"
           
@@ -152,7 +66,7 @@ jobs:
           sudo update-alternatives --query g++
           # 切换到所需版本
           for tool in "${tools_gcc[@]}"; do
-            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
+            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
           done
           # 验证版本
           gcc --version
@@ -180,11 +94,11 @@ jobs:
           sudo update-alternatives --query aarch64-linux-gnu-gcc
           # 切换到所需版本
           for tool in "${tools_aarch64[@]}"; do
-            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
+            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
           done
 
           # 验证版本
           aarch64-linux-gnu-gcc --version
 
-          echo "Switched to GCC/G++ and AArch64 GCC version ${selected_version}."
+          echo "Switched to GCC/G++ and AArch64 GCC version ${gcc_version}."
           echo "status=success" >> ${GITHUB_OUTPUT}
