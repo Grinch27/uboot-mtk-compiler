@@ -112,80 +112,63 @@ jobs:
         run: |
           echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
 
-      - name: Switch GNU C++ Version
+      - name: Switch GNU C++ Version and Setup AArch64 Cross-Compiler
         id: gcc-switch
         # if: ${{ 'true' == 'false' }} # disable
         env:
           DEBIAN_FRONTEND: noninteractive
           selected_version: 14
         run: |
-          # 定义要安装的包
+          # 定义要安装的包，包括通用GCC/G++和AArch64包
           packages_install=(
             "gcc-${selected_version}"
             "g++-${selected_version}"
             "gcc-${selected_version}-multilib"
             "g++-${selected_version}-multilib"
-          )
-          packages_extra=(
             "gcc-${selected_version}-aarch64-linux-gnu"
             "cpp-${selected_version}-aarch64-linux-gnu"
           )
           
           # 更新并安装包
-          sudo -E apt-get -y -qq update
-          sudo -E apt-get -y -qq install "${packages_install[@]}"
-          sudo -E apt-get -y -qq install "${packages_extra[@]}"
-          sudo -E systemctl daemon-reload
-
-          # 列出已安装的版本
-          ls /usr/bin/gcc-* /usr/bin/g++-* /usr/bin/aarch64-*
-
-          # 设置 update-alternatives 以管理不同版本的GCC
-          gcc_versions=$(ls /usr/bin/gcc-* | grep -oP '(?<=gcc-)\d+' | sort -u)
-          echo "Available GCC Versions: ${gcc_versions}"
+          sudo -E apt-get -yq update
+          sudo -E apt-get -yq install "${packages_install[@]}"
           
-          for version in ${gcc_versions}; do
-            if [ -f /usr/bin/gcc-${version} ]; then
-              sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${version} ${version}
-            fi
-            if [ -f /usr/bin/gcc-ar-${version} ]; then
-              sudo update-alternatives --install /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-${version} ${version}
-            fi
-            if [ -f /usr/bin/gcc-nm-${version} ]; then
-              sudo update-alternatives --install /usr/bin/gcc-nm gcc-nm /usr/bin/gcc-nm-${version} ${version}
-            fi
-            if [ -f /usr/bin/gcc-ranlib-${version} ]; then
-              sudo update-alternatives --install /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-${version} ${version}
-            fi
-            # AArch64特定设置
+          # 列出安装的版本
+          ls /usr/bin/gcc-* /usr/bin/g++-* /usr/bin/aarch64-linux-gnu-*
+
+          # 设置 update-alternatives 以管理不同版本的GCC、G++和AArch64工具
+          for tool in gcc gcc-ar gcc-nm gcc-ranlib g++; do
+            versions=$(ls /usr/bin/${tool}-* | grep -Eo '[0-9]+$' | sort -u)
+            for version in ${versions}; do
+              sudo update-alternatives --install /usr/bin/${tool} ${tool} /usr/bin/${tool}-${version} ${version}
+            done
+          done
+          sudo update-alternatives --query gcc
+          sudo update-alternatives --query g++
+
+          # AArch64专用设置
+          for version in ${versions}; do
             if [ -f /usr/bin/aarch64-linux-gnu-gcc-${version} ]; then
               sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-${version} ${version}
             fi
-          done
-          sudo update-alternatives --query gcc
-
-          # 设置 update-alternatives 以管理不同版本的G++
-          gpp_versions=$(ls /usr/bin/g++-* | grep -Eo '[0-9]+$' | sort -u)
-          echo "Available G++ versions: ${gpp_versions}"
-          for version in ${gpp_versions}; do
-            if [ -f /usr/bin/g++-${version} ]; then
-              sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${version} ${version}
+            if [ -f /usr/bin/aarch64-linux-gnu-cpp-${version} ]; then
+              sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-cpp aarch64-linux-gnu-cpp /usr/bin/aarch64-linux-gnu-cpp-${version} ${version}
             fi
           done
-          sudo update-alternatives --query g++
-
-          # 切换到所需的GCC和G++版本
+          
+          # 切换到所需版本
           sudo update-alternatives --set gcc /usr/bin/gcc-${selected_version}
           sudo update-alternatives --set gcc-ar /usr/bin/gcc-ar-${selected_version}
           sudo update-alternatives --set gcc-nm /usr/bin/gcc-nm-${selected_version}
           sudo update-alternatives --set gcc-ranlib /usr/bin/gcc-ranlib-${selected_version}
-          sudo update-alternatives --set aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-${selected_version}
           sudo update-alternatives --set g++ /usr/bin/g++-${selected_version}
+          sudo update-alternatives --set aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-${selected_version}
+          sudo update-alternatives --set aarch64-linux-gnu-cpp /usr/bin/aarch64-linux-gnu-cpp-${selected_version}
 
           # 验证版本
           gcc --version
           g++ --version
           aarch64-linux-gnu-gcc --version
-          echo "Switched to GCC/G++ version ${selected_version}."
 
+          echo "Switched to GCC/G++ and AArch64 GCC version ${selected_version}."
           echo "status=success" >> ${GITHUB_OUTPUT}
