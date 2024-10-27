@@ -119,7 +119,10 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
           selected_version: 14
         run: |
-          # 定义要安装的包，包括通用GCC/G++和AArch64包
+          echo -e "Current working directory: $(pwd)"
+
+          sudo -E apt-get -yqq update
+
           packages_install=(
             "gcc-${selected_version}"
             "g++-${selected_version}"
@@ -128,15 +131,10 @@ jobs:
             "gcc-${selected_version}-aarch64-linux-gnu"
             "cpp-${selected_version}-aarch64-linux-gnu"
           )
-          
-          # 更新并安装包
-          sudo -E apt-get -yqq update
           sudo -E apt-get -yqq install "${packages_install[@]}"
           
-          # 列出安装的版本
-          ls /usr/bin/gcc-* /usr/bin/g++-* /usr/bin/aarch64-linux-gnu-*
-
           # 设置 update-alternatives 以管理不同版本的GCC、G++和AArch64工具
+          ls /usr/bin/gcc-* /usr/bin/g++-*
           tools_gcc=(
             "gcc"
             "gcc-ar"
@@ -144,7 +142,6 @@ jobs:
             "gcc-ranlib"
             "g++"
           )
-          # for tool in gcc gcc-ar gcc-nm gcc-ranlib g++; do
           for tool in "${tools_gcc[@]}"; do
             versions=$(ls /usr/bin/${tool}-* | grep -Eo '[0-9]+$' | sort -u)
             for version in ${versions}; do
@@ -154,12 +151,15 @@ jobs:
           sudo update-alternatives --query gcc
           sudo update-alternatives --query g++
           # 切换到所需版本
-          # gcc gcc-ar gcc-nm gcc-ranlib g++
           for tool in "${tools_gcc[@]}"; do
             sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
           done
+          # 验证版本
+          gcc --version
+          g++ --version
 
           # AArch64专用设置，涵盖所有带版本号的aarch64-linux-gnu工具
+          ls /usr/bin/aarch64-linux-gnu-*
           tools_aarch64=(
             "aarch64-linux-gnu-gcc"
             "aarch64-linux-gnu-cpp"
@@ -179,14 +179,11 @@ jobs:
           done
           sudo update-alternatives --query aarch64-linux-gnu-gcc
           # 切换到所需版本
-          # aarch64-linux-gnu-gcc aarch64-linux-gnu-cpp
           for tool in "${tools_aarch64[@]}"; do
             sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
           done
 
           # 验证版本
-          gcc --version
-          g++ --version
           aarch64-linux-gnu-gcc --version
 
           echo "Switched to GCC/G++ and AArch64 GCC version ${selected_version}."
