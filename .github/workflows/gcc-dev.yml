@@ -147,13 +147,19 @@ jobs:
           sudo update-alternatives --query g++
 
           # AArch64专用设置
-          for version in ${versions}; do
-            if [ -f /usr/bin/aarch64-linux-gnu-gcc-${version} ]; then
-              sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-${version} ${version}
-            fi
-            if [ -f /usr/bin/aarch64-linux-gnu-cpp-${version} ]; then
-              sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-cpp aarch64-linux-gnu-cpp /usr/bin/aarch64-linux-gnu-cpp-${version} ${version}
-            fi
+          # for version in ${versions}; do
+          #   if [ -f /usr/bin/aarch64-linux-gnu-gcc-${version} ]; then
+          #     sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-${version} ${version}
+          #   fi
+          #   if [ -f /usr/bin/aarch64-linux-gnu-cpp-${version} ]; then
+          #     sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-cpp aarch64-linux-gnu-cpp /usr/bin/aarch64-linux-gnu-cpp-${version} ${version}
+          #   fi
+          # done
+          # AArch64专用设置，涵盖所有带版本号的aarch64-linux-gnu工具
+          for tool in /usr/bin/aarch64-linux-gnu-*-${selected_version}; do
+            # 提取工具名称并去除版本号后缀
+            tool_name=$(basename ${tool%-${selected_version}})
+            sudo update-alternatives --install /usr/bin/${tool_name} ${tool_name} ${tool} ${selected_version}
           done
           sudo update-alternatives --query aarch64-linux-gnu-gcc
           
