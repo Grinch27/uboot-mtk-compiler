@@ -153,6 +153,11 @@ jobs:
           done
           sudo update-alternatives --query gcc
           sudo update-alternatives --query g++
+          # 切换到所需版本
+          # gcc gcc-ar gcc-nm gcc-ranlib g++
+          for tool in "${tools_gcc[@]}"; do
+            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
+          done
 
           # AArch64专用设置，涵盖所有带版本号的aarch64-linux-gnu工具
           tools_aarch64=(
@@ -173,14 +178,9 @@ jobs:
             done
           done
           sudo update-alternatives --query aarch64-linux-gnu-gcc
-
           # 切换到所需版本
-          # gcc gcc-ar gcc-nm gcc-ranlib g++
-          for tool in gcc gcc-ar gcc-nm gcc-ranlib g++; do
-            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
-          done
           # aarch64-linux-gnu-gcc aarch64-linux-gnu-cpp
-          for tool in aarch64-linux-gnu-gcc aarch64-linux-gnu-cpp; do
+          for tool in "${tools_aarch64[@]}"; do
             sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
           done
 
