@@ -39,7 +39,7 @@ on:
           - newland_nl-wr9103
           - cmcc_xr30
           - cmcc_xr30-emmc
-          - zyxel-ex5700
+          - zyxel_ex5700
       custom_env:
         description: "key=value;key=value"
         type: string
@@ -348,19 +348,19 @@ jobs:
         # if: ${{ 'true' == 'false' }} # disable
         env:
           DEBIAN_FRONTEND: noninteractive
-          selected_version: 14
+          gcc_version: ${{ env.gcc_version || '14' }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
           sudo -E apt-get -yqq update
 
           packages_install=(
-            "gcc-${selected_version}"
-            "g++-${selected_version}"
-            "gcc-${selected_version}-multilib"
-            "g++-${selected_version}-multilib"
-            "gcc-${selected_version}-aarch64-linux-gnu"
-            "cpp-${selected_version}-aarch64-linux-gnu"
+            "gcc-${gcc_version}"
+            "g++-${gcc_version}"
+            "gcc-${gcc_version}-multilib"
+            "g++-${gcc_version}-multilib"
+            "gcc-${gcc_version}-aarch64-linux-gnu"
+            "cpp-${gcc_version}-aarch64-linux-gnu"
           )
           sudo -E apt-get -yqq install "${packages_install[@]}"
           
@@ -383,7 +383,7 @@ jobs:
           sudo update-alternatives --query g++
           # 切换到所需版本
           for tool in "${tools_gcc[@]}"; do
-            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
+            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
           done
           # 验证版本
           gcc --version
@@ -411,13 +411,13 @@ jobs:
           sudo update-alternatives --query aarch64-linux-gnu-gcc
           # 切换到所需版本
           for tool in "${tools_aarch64[@]}"; do
-            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${selected_version}
+            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
           done
 
           # 验证版本
           aarch64-linux-gnu-gcc --version
 
-          echo "Switched to GCC/G++ and AArch64 GCC version ${selected_version}."
+          echo "Switched to GCC/G++ and AArch64 GCC version ${gcc_version}."
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Create simulated physical disk
@@ -581,7 +581,7 @@ jobs:
             ["newland_nl-wr9103"]="mt7981|0,1|0,1" # Newland NL-WR9103 [with MULTI_LAYOUT]
             ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
             ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
-            ["zyxel-ex5700"]="mt7986a|0|0,1" # Zyxel EX5700
+            ["zyxel_ex5700"]="mt7986|0|0,1" # Zyxel EX5700
           )
 
           # ===== Backup Target Repository =====
