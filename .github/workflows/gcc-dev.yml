@@ -130,8 +130,8 @@ jobs:
           )
           
           # 更新并安装包
-          sudo -E apt-get -yq update
-          sudo -E apt-get -yq install "${packages_install[@]}"
+          sudo -E apt-get -yqq update
+          sudo -E apt-get -yqq install "${packages_install[@]}"
           
           # 列出安装的版本
           ls /usr/bin/gcc-* /usr/bin/g++-* /usr/bin/aarch64-linux-gnu-*
