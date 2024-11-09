@@ -48,6 +48,11 @@ on:
         type: string
         required: false
         default: ""
+      runner_image:
+        description: "Runner Image"
+        type: string
+        required: false
+        default: "ubuntu-latest"
   workflow_call:
     inputs:
       device_branch:
@@ -58,6 +63,10 @@ on:
         description: "key=value;key=value"
         type: string
         required: false
+      runner_image:
+        description: "Runner Image"
+        required: false
+        type: string
 
 run-name: U-Boot - ${{ inputs.device_branch || 'all' }}
 
