@@ -48,6 +48,16 @@ on:
         type: string
         required: false
         default: ""
+  workflow_call:
+    inputs:
+      device_branch:
+        description: "Select device branch"
+        required: true
+        type: string
+      custom_env:
+        description: "key=value;key=value"
+        type: string
+        required: false
 
 run-name: U-Boot - ${{ inputs.device_branch || 'all' }}
 
@@ -58,7 +68,7 @@ env:
 jobs:
   build:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
     env:
       app_branch: "uboot"
     steps:
@@ -366,7 +376,7 @@ jobs:
             "cpp-${gcc_version}-aarch64-linux-gnu"
           )
           sudo -E apt-get -yqq install "${packages_install[@]}"
-          
+
           # 设置 update-alternatives 以管理不同版本的GCC、G++和AArch64工具
           ls /usr/bin/gcc-* /usr/bin/g++-*
           tools_gcc=(
@@ -485,7 +495,7 @@ jobs:
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Version of Target Repo 
+      - name: Version of Target Repo
         id: version-target
         working-directory: ${{ env.path_target }}
         run: |
@@ -511,7 +521,7 @@ jobs:
           # ----- commit count: git rev-list --count HEAD -> 1000 ----- !!! work without --depth=1
           gitlocal_count=$(git rev-list --count HEAD)
           echo "gitlocal_count=${gitlocal_count}"
-          
+
           # ----- DIY -----
           tag_release="${gitlocal_branch}-${gitlocal_count}-${gitlocal_short}"
 

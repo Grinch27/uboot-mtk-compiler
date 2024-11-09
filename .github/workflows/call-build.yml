@@ -1,37 +1,25 @@
 name: Call Build
 
+# https://docs.github.com/zh/actions/writing-workflows/workflow-syntax-for-github-actions
+run-name: Build Matrix for UBoot
+
 on:
   schedule:
-    - cron: "0 0 * * *"
+    # Run every day at 20:00 UTC
+    - cron: "0 20 * * *"
   repository_dispatch:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  uboot:
+    name: ${{ matrix.workflows_inputs.device_branch }}
+    uses: ./.github/workflows/build-u-boot.yml
     strategy:
-      matrix:
-        config: [{ workflow: "build-u-boot", device_branch: "all" }]
       fail-fast: false
-    steps:
-      - name: Trigger workflow
-        id: trigger
-        env:
-          branch: "main"
-          workflow: ${{ matrix.config.workflow }}
-        working-directory: /
-        run: |
-          # Create base JSON using jq
-          data=$(jq -n \
-            --arg device_branch "${{ matrix.config.device_branch }}" \
-            '{ ref: "${{ env.branch }}", inputs: { device_branch: $device_branch } }')
-
-          # Output the final JSON data for debugging (optional)
-          echo "$data" | jq .
-
-          # Use the generated data with curl
-          curl -X POST \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: Bearer ${{ secrets.PAT }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/${{ env.workflow }}.yml/dispatches \
-            --data "$data"
+      matrix:
+        runner_image: ["ubuntu-24.04"]
+        workflows_inputs:
+          - device_branch: "all"
+    with:
+      runner_image: ${{ matrix.runner_image }}
+      device_branch: ${{ matrix.workflows_inputs.device_branch }}
