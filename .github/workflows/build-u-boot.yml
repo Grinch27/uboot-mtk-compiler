@@ -43,6 +43,7 @@ on:
           - openembed_som7981
           - glinet_gl-mt3000
           - glinet_gl-mt2500
+          - ax3000t_an8855
       custom_env:
         description: "key=value;key=value"
         type: string
@@ -607,6 +608,7 @@ jobs:
             ["openembed_som7981"]="mt7981|0|0,1" # openembed som7981
             ["glinet_gl-mt3000"]="mt7981|0|0,1" # glinet gl-mt3000
             ["glinet_gl-mt2500"]="mt7981|0|0,1" # glinet gl-mt2500
+            ["ax3000t_an8855"]="mt7981|0,1|0,1" # xiaomi ax3000t an8855 variant [with MULTI_LAYOUT]
           )
 
           # ===== Backup Target Repository =====
