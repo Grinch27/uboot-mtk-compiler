@@ -32,7 +32,7 @@ on:
           - glinet_gl-mt6000
           - nokia_ea0326gmp
           - ruijie_rg-x30e
-          - ruijie_rg-x30e_pro
+          - ruijie_rg-x30e-pro
           - tplink_tl-xtr8488
           - newland_nl-wr8103
           - honor_fur-602
@@ -598,7 +598,7 @@ jobs:
             ["glinet_gl-mt6000"]="mt7986|0|0,1" # glinet gl-mt6000
             ["nokia_ea0326gmp"]="mt7981|0|1,0" # nokia ea0326gmp with and without FIXED_MTDPARTS
             ["ruijie_rg-x30e"]="mt7981|0,1|0,1" # Ruijie RG-X30E [with MULTI_LAYOUT]
-            ["ruijie_rg-x30e_pro"]="mt7981|0,1|0,1" # Ruijie RG-X30E Pro [with MULTI_LAYOUT]
+            ["ruijie_rg-x30e-pro"]="mt7981|0,1|0,1" # Ruijie RG-X30E Pro [with MULTI_LAYOUT]
             ["tplink_tl-xtr8488"]="mt7986|0|0,1" # TP-Link TL-XTR8488
             ["newland_nl-wr8103"]="mt7981|0,1|0,1" # Newland NL-WR8103/MR3000D-CIq(256MB RAM version) [with MULTI_LAYOUT]
             ["honor_fur-602"]="mt7981|0,1|0,1" # HONOR FUR-602/603 (HONOR XT50/XU50/XC50) [with MULTI_LAYOUT]
