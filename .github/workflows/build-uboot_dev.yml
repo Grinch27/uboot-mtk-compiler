@@ -54,7 +54,7 @@ on:
         description: "Runner Image"
         type: string
         required: false
-        default: "ubuntu-latest"
+        default: "ubuntu-24.04"
   workflow_call:
     inputs:
       device_branch:
