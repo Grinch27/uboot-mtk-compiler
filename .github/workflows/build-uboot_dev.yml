@@ -1,0 +1,790 @@
+name: Build U-Boot (Dev)
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      device_branch:
+        description: "Select device branch"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - 360t7
+          - livinet_zr-3020
+          - cetron_ct3003
+          - jcg_q30
+          - konka_komi-a31
+          - wr30u
+          - imou_lc-hx3001
+          - clt_r30b1
+          - abt_asr3000
+          - cmcc_a10
+          - cmcc_rax3000m
+          - cmcc_rax3000m-emmc
+          - h3c_magic-nx30-pro
+          - ax3000t
+          - redmi_ax6000
+          - tplink_tl-xdr608x
+          - ruijie_rg-x60-pro
+          - jdcloud_re-cp-03
+          - glinet_gl-mt6000
+          - nokia_ea0326gmp
+          - ruijie_rg-x30e
+          - ruijie_rg-x30e-pro
+          - tplink_tl-xtr8488
+          - newland_nl-wr8103
+          - honor_fur-602
+          - newland_nl-wr9103
+          - cmcc_xr30
+          - cmcc_xr30-emmc
+          - zyxel_ex5700
+          - openembed_som7981
+          - glinet_gl-mt3000
+          - glinet_gl-mt2500
+          - ax3000t_an8855
+          - ruijie_rg-x60
+      custom_env:
+        description: "key=value;key=value"
+        type: string
+        required: false
+        default: ""
+      runner_image:
+        description: "Runner Image"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+  workflow_call:
+    inputs:
+      device_branch:
+        description: "Select device branch"
+        required: true
+        type: string
+      custom_env:
+        description: "key=value;key=value"
+        type: string
+        required: false
+      runner_image:
+        description: "Runner Image"
+        required: false
+        type: string
+
+run-name: U-Boot - ${{ inputs.device_branch || 'all' }}
+
+env:
+  device_branch: ${{ inputs.device_branch || 'all' }}
+  custom_env: ${{ inputs.custom_env || '' }}
+
+jobs:
+  build:
+    name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
+    runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
+    env:
+      app_branch: "uboot"
+    steps:
+      - name: Set environment variable - ${{ env.device_branch }}
+        id: var
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          # ========== Set repo branch ==========
+          repo_target="https://github.com/hanwckf/bl-mt798x"
+          repo_target_branch="master"
+          repo_diy="https://github.com/$GITHUB_REPOSITORY"
+
+          # ========== Build Path ==========
+          dir_build="builder"
+          dir_output="output"
+          dir_backup="backup"
+          dir_diy="DIY"
+          # ---------- / ----------
+          path_build="/${dir_build}"
+          path_target="${path_build}/${app_branch}"
+          path_output="${path_build}/${dir_output}"
+          path_backup="${path_build}/${dir_backup}"
+
+          path_diy="${path_build}/${dir_diy}"
+          # release_md="${path_build}/release.md"
+
+          # ========== GITHUB_ENV ==========
+          env_vars=(
+            "repo_target"
+            "repo_target_branch"
+            "repo_diy"
+            "path_build"
+            "path_target"
+            "path_output"
+            "path_backup"
+            "path_diy"
+          )
+          # "release_md"
+          for var in "${env_vars[@]}"; do
+            echo "${var}=${!var}" | tee -a $GITHUB_ENV
+          done
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Load Custom Environment Variables
+        id: env-custom
+        if: ${{ env.custom_env != '' }}
+        env:
+          flag_split: ";"
+        working-directory: /
+        run: |
+          echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
+
+      - name: Clean Snap
+        id: clean-snap
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          sudo -E apt-get -qq -y update
+          sudo snap list
+
+          # ===== Remove snap =====
+          for p in $(snap list | awk '{print $1}'); do
+            sudo snap remove $p
+          done
+          sudo systemctl stop snapd
+          sudo systemctl disable --now snapd.socket
+          sudo apt-get -qq -y autoremove --purge snapd
+          sudo rm -rf ~/snap
+          sudo rm -rf /snap
+          sudo rm -rf /var/snap
+          sudo rm -rf /var/lib/snapd
+          sudo rm -rf /var/cache/snapd
+          sudo bash -c 'cat <<EOF > /etc/apt/preferences.d/nosnap.pref
+          Package: snapd
+          Pin: release a=*
+          Pin-Priority: -10
+          EOF'
+          sudo -E systemctl daemon-reload
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Clear environment
+        id: clearinit
+        # if: ${{ 'true' == 'false' }} # disable
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          docker image list
+          # 删除docker所有镜像
+          # for image in $(docker images -q); do
+          #   docker rmi -f $image
+          # done
+          # 删除所有不再使用的 docker 镜像、容器、网络和数据卷
+          docker image prune -a
+
+          # 如果环境变量 AGENT_TOOLSDIRECTORY 不为空，则删除该目录及其所有内容
+          [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
+          # 删除指定的目录及其所有内容，忽略所有错误信息
+          # sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
+          # 关闭所有交换空间 删除指定的交换文件
+          sudo swapoff -a
+          sudo rm -f /swapfile /mnt/swapfile
+
+          # ===== Clean apt =====
+          packages_purge=(
+            "docker*"
+            "ghc*"
+            "zulu*"
+            "google*"
+            "firefox*"
+            "dotnet*"
+            "powershell*"
+            "openjdk*"
+            "mongodb*"
+            "moby*"
+            "mysql*"
+            "postgresql*"
+            "sqlite3*"
+            "apache2*"
+            "nginx*"
+            "php*"
+          )
+          sudo -E apt-get -qq -y update
+          sudo -E apt-get -qq -y purge "${packages_purge[@]}" || true
+          sudo -E apt-get -qq -y autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo -E systemctl daemon-reload
+          apt list --installed
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
+
+          df -Th
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Initialization environment
+        id: init
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          packages_install=(
+            "ack"
+            "antlr3"
+            "asciidoc"
+            "autoconf"
+            "automake"
+            "autopoint"
+            "bc"
+            "binutils"
+            "bison"
+            "build-essential"
+            "bzip2"
+            "ca-certificates"
+            "clang"
+            "clangd"
+            "cmake"
+            "cpio"
+            "curl"
+            "device-tree-compiler"
+            "dwarves"
+            "ecj"
+            "fastjar"
+            "flex"
+            "gawk"
+            "g++"
+            "gcc"
+            "gcc-aarch64-linux-gnu"
+            "git"
+            "git-lfs"
+            "gnupg"
+            "gperf"
+            "haveged"
+            "help2man"
+            "intltool"
+            "jq"
+            "libelf-dev"
+            "libglib2.0-dev"
+            "libgmp3-dev"
+            "libltdl-dev"
+            "libmpc-dev"
+            "libmpfr-dev"
+            "libncurses5-dev"
+            "libreadline-dev"
+            "libssl-dev"
+            "libtool"
+            "libxml2"
+            "libxml2-utils"
+            "lld"
+            "lldb"
+            "lz4"
+            "lzop"
+            "make"
+            "mkisofs"
+            "ninja-build"
+            "p7zip-full"
+            "patch"
+            "pkgconf"
+            "python3"
+            "python3-pip"
+            "re2c"
+            "rsync"
+            "schedtool"
+            "scons"
+            "squashfs-tools"
+            "subversion"
+            "swig"
+            "uglifyjs"
+            "unzip"
+            "vim"
+            "wget"
+            "xsltproc"
+            "zip"
+            "zlib1g-dev"
+          )
+          # Commented out packages (sorted):
+          # "ccache"
+          # "lib32gcc-s1"
+          # "libc6-dev-i386"
+          # "libdb++-dev"
+          # "gcc-multilib"
+          # "g++-multilib"
+          # "libncursesw5"
+          # "libncursesw5-dev"
+          # "lrzsz"
+          # "msmtp"
+          # "nano"
+          # "p7zip"
+          # "python3-docutils"
+          # "python3-ply"
+          # "qemu-utils"
+          # "texinfo"
+          # "xmlto"
+          # "xxd"
+          packages_slim=(
+            "bc"
+            "bison"
+            "build-essential"
+            "ca-certificates"
+            "curl"
+            "flex"
+            "g++"
+            "gcc"
+            "gcc-aarch64-linux-gnu"
+            "git"
+            "git-lfs"
+            "gnupg"
+            "gperf"
+            "libelf-dev"
+            "lz4"
+            "libssl-dev"
+            "libxml2"
+            "libxml2-utils"
+            "lzop"
+            "make"
+            "python3"
+            "rsync"
+            "schedtool"
+            "squashfs-tools"
+            "vim"
+            "xsltproc"
+            "zip"
+            "zlib1g-dev"
+          )
+          sudo -E apt-get -y -qq update
+          sudo -E apt-get -y -qq install "${packages_install[@]}"
+          # sudo -E apt-get -y -qq install "${packages_slim[@]}"
+          sudo -E apt-get -qq -y autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo -E systemctl daemon-reload
+
+          # Verify Make version
+          make --version
+          # Verify GCC version
+          gcc --version
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Switch for GNU C++ & AArch64 Cross-Compiler
+        id: switch-gcc
+        # if: ${{ 'true' == 'false' }} # disable
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          gcc_version: ${{ env.gcc_version || '14' }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          sudo -E apt-get -yqq update
+
+          packages_install=(
+            "gcc-${gcc_version}"
+            "g++-${gcc_version}"
+            "gcc-${gcc_version}-multilib"
+            "g++-${gcc_version}-multilib"
+            "gcc-${gcc_version}-aarch64-linux-gnu"
+            "cpp-${gcc_version}-aarch64-linux-gnu"
+          )
+          sudo -E apt-get -yqq install "${packages_install[@]}"
+
+          # 设置 update-alternatives 以管理不同版本的GCC、G++和AArch64工具
+          ls /usr/bin/gcc-* /usr/bin/g++-*
+          tools_gcc=(
+            "gcc"
+            "gcc-ar"
+            "gcc-nm"
+            "gcc-ranlib"
+            "g++"
+          )
+          for tool in "${tools_gcc[@]}"; do
+            versions=$(ls /usr/bin/${tool}-* | grep -Eo '[0-9]+$' | sort -u)
+            for version in ${versions}; do
+              sudo update-alternatives --install /usr/bin/${tool} ${tool} /usr/bin/${tool}-${version} ${version}
+            done
+          done
+          sudo update-alternatives --query gcc
+          sudo update-alternatives --query g++
+          # 切换到所需版本
+          for tool in "${tools_gcc[@]}"; do
+            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
+          done
+          # 验证版本
+          gcc --version
+          g++ --version
+
+          # AArch64专用设置，涵盖所有带版本号的aarch64-linux-gnu工具
+          ls /usr/bin/aarch64-linux-gnu-*
+          tools_aarch64=(
+            "aarch64-linux-gnu-gcc"
+            "aarch64-linux-gnu-cpp"
+            "aarch64-linux-gnu-gcc-ar"
+            "aarch64-linux-gnu-gcc-nm"
+            "aarch64-linux-gnu-gcc-ranlib"
+            "aarch64-linux-gnu-gcov"
+            "aarch64-linux-gnu-gcov-dump"
+            "aarch64-linux-gnu-gcov-tool"
+            "aarch64-linux-gnu-lto-dump"
+          )
+          for tool in "${tools_aarch64[@]}"; do
+            versions=$(ls /usr/bin/${tool}-* 2>/dev/null | grep -Eo '[0-9]+$' | sort -u)
+            for version in ${versions}; do
+              sudo update-alternatives --install /usr/bin/${tool} ${tool} /usr/bin/${tool}-${version} ${version}
+            done
+          done
+          sudo update-alternatives --query aarch64-linux-gnu-gcc
+          # 切换到所需版本
+          for tool in "${tools_aarch64[@]}"; do
+            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
+          done
+
+          # 验证版本
+          aarch64-linux-gnu-gcc --version
+
+          echo "Switched to GCC/G++ and AArch64 GCC version ${gcc_version}."
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Create simulated physical disk
+        id: disk
+        env:
+          path_build: ${{ env.path_build }}
+          mnt_num: 1
+          root_num: 4
+        working-directory: /
+        run: |
+          echo "Current working directory: $(pwd)"
+
+          # 获取 /mnt 和 / 分区的剩余空间
+          mnt_available=$(df -B1 /mnt | tail -1 | awk '{print $4}')
+          root_available=$(df -B1 / | tail -1 | awk '{print $4}')
+          echo "Raw available space in /mnt (bytes): ${mnt_available}"
+          echo "Raw available space in / (bytes): ${root_available}"
+
+          # 减去缓冲空间：/mnt 和 / 分区分别减去缓冲
+          gb2bytes=$((1024 * 1024 * 1024))
+          mnt_size=$((${mnt_available} - ${{ env.mnt_num }} * ${gb2bytes} ))
+          root_size=$((${root_available} - ${{ env.root_num }} * ${gb2bytes} ))
+          echo "Available space in /mnt (bytes): ${mnt_size}"
+          echo "Available space in / (bytes): ${root_size}"
+
+          # 使用 LVM 创建物理卷、卷组和逻辑卷
+          # sudo pvcreate /dev/loop6
+          # sudo vgcreate github /dev/loop6
+
+          # 使用 LVM 创建物理卷、卷组和逻辑卷，将文件关联到 loop 设备, 在这两个 loop 设备上创建物理卷, 创建一个名为 github 的卷组，包含这两个物理卷
+          sudo truncate -s "${mnt_size}" /mnt/mnt.img
+          sudo truncate -s "${root_size}" /root.img
+          sudo losetup /dev/loop6 /mnt/mnt.img
+          sudo losetup /dev/loop7 /root.img
+          sudo pvcreate /dev/loop6
+          sudo pvcreate /dev/loop7
+          sudo vgcreate github /dev/loop6 /dev/loop7
+
+          # 在 github 卷组上创建一个名为 runner 的逻辑卷，使用所有可用空间, 在 runner 逻辑卷上创建一个 XFS 文件系统
+          sudo lvcreate -n runner -l 100%FREE github
+          sudo mkfs.xfs /dev/github/runner
+
+          # 创建一个挂载点 ${path_build}, 将 runner 逻辑卷挂载到 ${path_build}, 将 ${path_build} 的所有者和组更改为 runner
+          sudo mkdir -p "${path_build}"
+          sudo mount /dev/github/runner "${path_build}"
+          sudo chown -R runner:runner "${path_build}"
+
+          df -Th
+          echo "status=success" >> "${GITHUB_OUTPUT}"
+
+      - name: Clone Target Repository
+        id: clonesys
+        if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
+        working-directory: ${{ env.path_build }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          # Clone target repository: without --depth=1
+          git clone ${repo_target} ${path_target} --single-branch --branch=${repo_target_branch} 
+          echo -e "repo_target: [ ${repo_target} ]\nBRANCH: [ ${repo_target_branch} ]"
+
+          df -hT ${PWD}
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Version of Target Repo
+        id: version-target
+        working-directory: ${{ env.path_target }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          set -x
+
+          # ----- git describe --all --long -> refs/heads/master-0-gf5b6b6d -----
+          gitlocal_describe=$(git describe --all --long | cut -d'/' -f2-)
+          echo "gitlocal_describe=${gitlocal_describe}"
+
+          # ----- branch: git rev-parse --abbrev-ref HEAD -> master -----
+          gitlocal_branch=$(git rev-parse --abbrev-ref HEAD)
+          echo "gitlocal_branch=${gitlocal_branch}"
+
+          # ----- short hash: git rev-parse --short HEAD -> f5b6b6d -----
+          gitlocal_short=$(git rev-parse --short HEAD)
+          echo "gitlocal_short=${gitlocal_short}"
+
+          # ----- full hash: git rev-parse HEAD -----
+          gitlocal_hash=$(git rev-parse HEAD)
+          echo "gitlocal_hash=${gitlocal_hash}"
+
+          # ----- commit count: git rev-list --count HEAD -> 1000 ----- !!! work without --depth=1
+          gitlocal_count=$(git rev-list --count HEAD)
+          echo "gitlocal_count=${gitlocal_count}"
+
+          # ----- DIY -----
+          tag_release="${gitlocal_branch}-${gitlocal_count}-${gitlocal_short}"
+
+          echo "tag_release=${tag_release}" | tee -a $GITHUB_ENV
+          echo "status=success" | tee -a ${GITHUB_OUTPUT}
+
+      - name: Clone DIY
+        id: clonediy
+        # if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
+        if: ${{ 'true' == 'false' }} # disable
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          git clone ${repo_diy} ${path_diy} --single-branch --depth=1 --branch=main
+          echo -e "repo_diy: [ ${repo_diy} ]\nBRANCH: [ main ]"
+
+          df -hT ${PWD}
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Check environment
+        id: checkenv
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          # List all environment variables
+          printenv
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Compile U-Boot Cycle
+        id: compile
+        if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
+        env:
+          device: ${{ env.device_branch }}
+        working-directory: ${{ env.path_build }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          # [BOARD] = SOC | MULTI_LAYOUT | FIXED_MTDPARTS
+          # local switch_MULTI_LAYOUT="0"
+          # local switch_FIXED_MTDPARTS="0,1"
+          declare -A BOARD_PARAMS=(
+            ["360t7"]="mt7981|0|0,1" # 360 T7/T7U/T7M
+            ["livinet_zr-3020"]="mt7981|0|0,1" # ZR3020
+            ["cetron_ct3003"]="mt7981|0|0,1" # Cetron CT3003
+            ["jcg_q30"]="mt7981|0|0,1" # JCG Q30 PRO
+            ["konka_komi-a31"]="mt7981|0|0,1" # 康佳 KOMI-A31
+            ["wr30u"]="mt7981|0,1|0,1" # 小米 WR30U/T/M [with MULTI_LAYOUT]
+            ["imou_lc-hx3001"]="mt7981|0|0,1" # 乐橙 LC-HX3001
+            ["clt_r30b1"]="mt7981|0,1|0,1" # 创联腾 CLT-R30B1 [with MULTI_LAYOUT]
+            ["abt_asr3000"]="mt7981|0|0,1" # 安博通 ABT ASR3000
+            ["cmcc_a10"]="mt7981|0|0,1" # CMCC A10
+            ["cmcc_rax3000m"]="mt7981|0|0,1" # CMCC RAX3000M (SPI-NAND)
+            ["cmcc_rax3000m-emmc"]="mt7981|0|0,1" # CMCC RAX3000M (EMMC)
+            ["h3c_magic-nx30-pro"]="mt7981|0|0,1" # H3C NX30 Pro
+            ["ax3000t"]="mt7981|0,1|0,1" # 小米 AX3000T [with MULTI_LAYOUT]
+            ["redmi_ax6000"]="mt7986|0,1|0,1" # 红米 AX6000 [with MULTI_LAYOUT]
+            ["tplink_tl-xdr608x"]="mt7986|0|0,1" # TP-LINK XDR4288/6086/6088
+            ["ruijie_rg-x60-pro"]="mt7986|0,1|0,1" # Ruijie RG-X60 Pro [with MULTI_LAYOUT]
+            ["jdcloud_re-cp-03"]="mt7986|0|0,1" # JDCloud RE-CP-03
+            ["glinet_gl-mt6000"]="mt7986|0|0,1" # glinet gl-mt6000
+            ["nokia_ea0326gmp"]="mt7981|0|1,0" # nokia ea0326gmp with and without FIXED_MTDPARTS
+            ["ruijie_rg-x30e"]="mt7981|0,1|0,1" # Ruijie RG-X30E [with MULTI_LAYOUT]
+            ["ruijie_rg-x30e-pro"]="mt7981|0,1|0,1" # Ruijie RG-X30E Pro [with MULTI_LAYOUT]
+            ["tplink_tl-xtr8488"]="mt7986|0|0,1" # TP-Link TL-XTR8488
+            ["newland_nl-wr8103"]="mt7981|0,1|0,1" # Newland NL-WR8103/MR3000D-CIq(256MB RAM version) [with MULTI_LAYOUT]
+            ["honor_fur-602"]="mt7981|0,1|0,1" # HONOR FUR-602/603 (HONOR XT50/XU50/XC50) [with MULTI_LAYOUT]
+            ["newland_nl-wr9103"]="mt7981|0,1|0,1" # Newland NL-WR9103 [with MULTI_LAYOUT]
+            ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
+            ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
+            ["zyxel_ex5700"]="mt7986|0|0,1" # Zyxel EX5700
+            ["openembed_som7981"]="mt7981|0|0,1" # openembed som7981
+            ["glinet_gl-mt3000"]="mt7981|0|0,1" # glinet gl-mt3000
+            ["glinet_gl-mt2500"]="mt7981|0|0,1" # glinet gl-mt2500
+            ["ax3000t_an8855"]="mt7981|0,1|0,1" # xiaomi ax3000t an8855 variant [with MULTI_LAYOUT]
+            ["ruijie_rg-x60"]="mt7986|0,1|0,1" # Ruijie RG-X60 [with MULTI_LAYOUT]
+          )
+
+          # ===== Backup Target Repository =====
+          backup_repo() {
+            local ORIGINAL_DIR="$PWD"
+
+            echo "Backup path: ${path_backup}"
+            mkdir -p ${path_backup}
+            cp -rf ${path_target} ${path_backup}
+            ls -al ${path_backup}
+
+            echo "Changing back to the original directory ${ORIGINAL_DIR}"
+            cd "${ORIGINAL_DIR}"
+          }
+
+          # ===== Define function to compile U-Boot =====
+          # ----- complie_device > split_device_params > exec_build_sh -----
+          complie_device() {
+            local device=$1
+            local params=$2
+            IFS='|' read -ra PARAMS <<< "$params"
+            split_device_params "$device" "${PARAMS[0]}" "${PARAMS[@]:1}"
+          }
+
+          split_device_params() {
+            local BOARD=$1
+            local SOC=$2
+            local OTHER_PARAMS=("${@:3}")
+            # 从第三个参数开始获取所有参数，存储到 OTHER_PARAMS 数组中
+            local MULTI_LAYOUT_VALUES=${OTHER_PARAMS[0]:-"0"}
+            local FIXED_MTDPARTS_VALUES=${OTHER_PARAMS[1]:-"0"}
+            IFS=',' read -ra MULTI_LAYOUT_ARRAY <<< "${MULTI_LAYOUT_VALUES}"
+            IFS=',' read -ra FIXED_MTDPARTS_ARRAY <<< "${FIXED_MTDPARTS_VALUES}"
+            
+            for MULTI_LAYOUT in "${MULTI_LAYOUT_ARRAY[@]}"; do
+              for FIXED_MTDPARTS in "${FIXED_MTDPARTS_ARRAY[@]}"; do
+                cd "${path_build}"
+                rm -rf "${path_target}"
+                cp -rf "${path_backup}/${app_branch}" "${path_build}"
+                cd "${path_target}"
+                exec_build_sh "${SOC}" "${BOARD}" "${MULTI_LAYOUT}" "${FIXED_MTDPARTS}"
+              done
+            done
+          }
+
+          exec_build_sh() {
+            local SOC=$1
+            local BOARD=$2
+            local MULTI_LAYOUT=$3
+            local FIXED_MTDPARTS=$4
+
+            echo -e "Current working directory: $(pwd)"
+            echo -e "---------- Compile U-Boot of ${BOARD} ----------"
+            SOC=${SOC} BOARD=${BOARD} MULTI_LAYOUT=${MULTI_LAYOUT} FIXED_MTDPARTS=${FIXED_MTDPARTS} ./build.sh
+            cp -rf ./output/* ${path_output}
+          }
+
+          # ===== main function =====
+          main() {
+            mkdir -p ${path_output}
+            backup_repo
+
+            if [[ -z "${device}" || "${device,,}" == "all" ]]; then
+              echo "Compiling for all devices"
+              for BOARD in "${!BOARD_PARAMS[@]}"; do
+                complie_device "$BOARD" "${BOARD_PARAMS[$BOARD]}"
+              done
+            else
+              if [[ -n "${BOARD_PARAMS[${device}]}" ]]; then
+                echo "Compiling for device: ${device}"
+                complie_device "$device" "${BOARD_PARAMS[$device]}"
+              else
+                echo "Invalid device: ${device}"
+                exit 1
+              fi
+            fi
+          }
+          main "$@"
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Setup output
+        id: output
+        # if: ${{ 'true' == 'false' }} # disable
+        env:
+          metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
+          category: "files"
+          target_ext: "bin"
+        working-directory: ${{ env.path_output }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          ls -al ./
+
+          metadata='{"${{ env.category }}":[]}'
+          for file in ./*.${{ env.target_ext }}; do
+            if [[ ! -d "${file}" ]]; then
+              read -r checksum filename <<< "$(sha256sum "${file}")"
+              filename=$(basename "${filename}")
+              metadata=$(jq \
+                --arg filename "${filename}" \
+                --arg checksum "${checksum}" \
+                '.${{ env.category }} += [{filename: $filename, checksum: $checksum}]' <<< "${metadata}")
+            fi
+          done
+          echo "metadata=${metadata}"
+          echo "${metadata}" | jq . > ${{ env.metadata_sum_path }}
+
+          echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
+          echo "metadata_sum_path=${metadata_sum_path}" | tee -a ${GITHUB_OUTPUT}
+          echo "status=success" | tee -a ${GITHUB_OUTPUT}
+
+      - name: (release.md) Generate
+        id: release-md
+        env:
+          release_md: "${{ github.workspace }}/release.md"
+          metadata_sum_path: ${{ steps.output.outputs.metadata_sum_path }}
+        working-directory: ${{ env.path_target }}
+        run: |
+          printf "Current working directory: %s\n" "$(pwd)"
+
+          release_md_dir=$(dirname ${{ env.release_md }})
+          mkdir -p ${release_md_dir}
+          : > ${{ env.release_md }}
+
+          record_to_markdown() {
+            local title="$1"
+            local content="$2"
+            local code_block="${3:-}"
+            local format="\n### %s\n%s\n"
+
+            if [[ -n "${code_block}" ]]; then
+              format="\n### %s\n\n<details>\n<summary>%s</summary>\n\n\`\`\`%s\n%s\n\`\`\`\n\n</details>\n"
+              printf "${format}" "${title}" "${title}" "${code_block}" "${content}" | tee -a ${{ env.release_md }}
+            else
+              printf "${format}" "${title}" "${content}" | tee -a ${{ env.release_md }}
+            fi
+          }
+
+          record_to_markdown "Timestamp" "- [x] $(date +"%Y-%m-%d %H:%M:%S %z")"
+          record_to_markdown "Repository" "- [x] ${repo_target}"
+          record_to_markdown "Repository Branch" "- [x] ${repo_target_branch}"
+
+          sum_json_content=$(jq '.' "${{ env.metadata_sum_path }}")
+          record_to_markdown "sha256sum" "${sum_json_content}" "json"
+
+          cat ${{ env.release_md }}
+          echo "release_md=${release_md}" | tee -a ${GITHUB_OUTPUT}
+          echo "status=success" | tee -a ${GITHUB_OUTPUT}
+
+      - name: Upload OpenWrt to Release
+        id: release
+        uses: ncipollo/release-action@main
+        if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
+        env:
+          timestamp: ${{ steps.output.outputs.timestamp }}
+          target_ext: "tar"
+          release_md: ${{ steps.release-md.outputs.release_md }}
+          tag_release: ${{ env.tag_release || env.app_branch }}
+        with:
+          name: "${{ env.timestamp }}_${{ env.tag_release }}"
+          tag: "${{ env.tag_release }}"
+          artifacts: "${{ env.path_output }}/*"
+          allowUpdates: true
+          removeArtifacts: false
+          replacesArtifacts: true
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          bodyFile: "${{ env.release_md }}"
+
+      - name: Clear workspace
+        id: clearwork
+        if: ${{ 'true' == 'false' }} # disable
+        working-directory: ${{ env.path_build }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          rm -rf ./* 2>/dev/null
+          df -hT ${PWD}
+          echo "status=success" >> ${GITHUB_OUTPUT}
