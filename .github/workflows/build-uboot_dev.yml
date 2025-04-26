@@ -657,20 +657,20 @@ jobs:
           }
 
           exec_build_sh() {
-            local SOC=$1
-            local BOARD=$2
-            local MULTI_LAYOUT=$3
-            local FIXED_MTDPARTS=$4
+            local SOC="$1"
+            local BOARD="$2"
+            local MULTI_LAYOUT="$3"
+            local FIXED_MTDPARTS="$4"
 
             echo -e "Current working directory: $(pwd)"
             echo -e "---------- Compile U-Boot of ${BOARD} ----------"
-            SOC=${SOC} BOARD=${BOARD} MULTI_LAYOUT=${MULTI_LAYOUT} FIXED_MTDPARTS=${FIXED_MTDPARTS} ./build.sh
-            cp -rf ./output/* ${path_output}
+            SOC="${SOC}" BOARD="${BOARD}" MULTI_LAYOUT="${MULTI_LAYOUT}" FIXED_MTDPARTS="${FIXED_MTDPARTS}" ./build.sh
+            cp -rf ./output/* "${path_output}"
           }
 
           # ===== main function =====
           main() {
-            mkdir -p ${path_output}
+            mkdir -p "${path_output}"
             backup_repo
 
             if [[ -z "${device}" || "${device,,}" == "all" ]]; then
