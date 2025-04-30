@@ -613,49 +613,56 @@ jobs:
             ["ruijie_rg-x60"]="mt7986|0,1|0,1" # Ruijie RG-X60 [with MULTI_LAYOUT]
           )
 
-          # ===== Backup Target Repository =====
+          # 备份目标仓库
           backup_repo() {
-            local ORIGINAL_DIR="$PWD"
-
+            local ORIGINAL_DIR="${PWD}"
+            
             echo "Backup path: ${path_backup}"
-            mkdir -p ${path_backup}
-            cp -rf ${path_target} ${path_backup}
-            ls -al ${path_backup}
-
+            mkdir -p "${path_backup}"
+            cp -rf "${path_target}" "${path_backup}"
+            ls -al "${path_backup}"
+            
             echo "Changing back to the original directory ${ORIGINAL_DIR}"
-            cd "${ORIGINAL_DIR}"
+            cd "${ORIGINAL_DIR}" || return 1
           }
 
-          # ===== Define function to compile U-Boot =====
-          # ----- complie_device > split_device_params > exec_build_sh -----
+          # 编译设备固件
           complie_device() {
-            local device=$1
-            local params=$2
-            IFS='|' read -ra PARAMS <<< "$params"
-            split_device_params "$device" "${PARAMS[0]}" "${PARAMS[@]:1}"
+            local device="$1"
+            local params="$2"
+            local IFS='|' 
+            read -ra PARAMS <<< "${params}"
+            split_device_params "${device}" "${PARAMS[0]}" "${PARAMS[@]:1}"
           }
 
+          # 解析设备参数
           split_device_params() {
-            local BOARD=$1
-            local SOC=$2
+            local BOARD="$1"
+            local SOC="$2"
             local OTHER_PARAMS=("${@:3}")
-            # 从第三个参数开始获取所有参数，存储到 OTHER_PARAMS 数组中
+            
+            # 获取多布局和固定分区值
             local MULTI_LAYOUT_VALUES=${OTHER_PARAMS[0]:-"0"}
             local FIXED_MTDPARTS_VALUES=${OTHER_PARAMS[1]:-"0"}
-            IFS=',' read -ra MULTI_LAYOUT_ARRAY <<< "${MULTI_LAYOUT_VALUES}"
-            IFS=',' read -ra FIXED_MTDPARTS_ARRAY <<< "${FIXED_MTDPARTS_VALUES}"
             
+            # 解析参数数组
+            local IFS=','
+            read -ra MULTI_LAYOUT_ARRAY <<< "${MULTI_LAYOUT_VALUES}"
+            read -ra FIXED_MTDPARTS_ARRAY <<< "${FIXED_MTDPARTS_VALUES}"
+            
+            # 遍历参数组合进行编译
             for MULTI_LAYOUT in "${MULTI_LAYOUT_ARRAY[@]}"; do
               for FIXED_MTDPARTS in "${FIXED_MTDPARTS_ARRAY[@]}"; do
-                cd "${path_build}"
+                cd "${path_build}" || return 1
                 rm -rf "${path_target}"
                 cp -rf "${path_backup}/${app_branch}" "${path_build}"
-                cd "${path_target}"
+                cd "${path_target}" || return 1
                 exec_build_sh "${SOC}" "${BOARD}" "${MULTI_LAYOUT}" "${FIXED_MTDPARTS}"
               done
             done
           }
 
+          # 执行编译脚本
           exec_build_sh() {
             local SOC="$1"
             local BOARD="$2"
@@ -664,7 +671,14 @@ jobs:
 
             echo -e "Current working directory: $(pwd)"
             echo -e "---------- Compile U-Boot of ${BOARD} ----------"
-            SOC="${SOC}" BOARD="${BOARD}" MULTI_LAYOUT="${MULTI_LAYOUT}" FIXED_MTDPARTS="${FIXED_MTDPARTS}" ./build.sh
+            
+            # 使用环境变量设置编译参数
+            SOC="${SOC}" BOARD="${BOARD}" \
+            MULTI_LAYOUT="${MULTI_LAYOUT}" \
+            FIXED_MTDPARTS="${FIXED_MTDPARTS}" \
+            ./build.sh
+            
+            # 复制编译结果
             cp -rf ./output/* "${path_output}"
           }
 
@@ -704,23 +718,33 @@ jobs:
           echo -e "Current working directory: $(pwd)"
           ls -al ./
 
-          metadata='{"${{ env.category }}":[]}'
-          for file in ./*.${{ env.target_ext }}; do
+          # 初始化元数据JSON对象
+          metadata='{"${category}":[]}'
+
+          # 遍历指定扩展名文件并计算校验和
+          for file in ./*."${target_ext}"; do
             if [[ ! -d "${file}" ]]; then
+              # 读取校验和和文件名
               read -r checksum filename <<< "$(sha256sum "${file}")"
+              # 提取文件基本名称
               filename=$(basename "${filename}")
+              
+              # 使用jq将文件信息添加到元数据
               metadata=$(jq \
                 --arg filename "${filename}" \
                 --arg checksum "${checksum}" \
-                '.${{ env.category }} += [{filename: $filename, checksum: $checksum}]' <<< "${metadata}")
+                '.${category} += [{filename: $filename, checksum: $checksum}]' <<< "${metadata}")
             fi
           done
-          echo "metadata=${metadata}"
-          echo "${metadata}" | jq . > ${{ env.metadata_sum_path }}
 
-          echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
-          echo "metadata_sum_path=${metadata_sum_path}" | tee -a ${GITHUB_OUTPUT}
-          echo "status=success" | tee -a ${GITHUB_OUTPUT}
+          # 输出元数据和保存到文件
+          echo "metadata=${metadata}"
+          echo "${metadata}" | jq . > "${metadata_sum_path}"
+
+          # 设置GitHub输出变量
+          echo "timestamp=$(date +"%y%mw%V")" | tee -a "${GITHUB_OUTPUT}"
+          echo "metadata_sum_path=${metadata_sum_path}" | tee -a "${GITHUB_OUTPUT}"
+          echo "status=success" | tee -a "${GITHUB_OUTPUT}"
 
       - name: (release.md) Generate
         id: release-md
@@ -731,34 +755,46 @@ jobs:
         run: |
           printf "Current working directory: %s\n" "$(pwd)"
 
-          release_md_dir=$(dirname ${{ env.release_md }})
-          mkdir -p ${release_md_dir}
-          : > ${{ env.release_md }}
+          # 创建发布说明文件目录(如果不存在)
+          release_md_dir=$(dirname "${release_md}")
+          mkdir -p "${release_md_dir}"
 
+          # 初始化空文件
+          : > "${release_md}"
+
+          # 定义向markdown文件添加内容的函数
           record_to_markdown() {
             local title="$1"
             local content="$2"
-            local code_block="${3:-}"
+            local code_block="${3:-}"  # 可选参数，默认为空
             local format="\n### %s\n%s\n"
 
             if [[ -n "${code_block}" ]]; then
+              # 使用可折叠代码块格式
               format="\n### %s\n\n<details>\n<summary>%s</summary>\n\n\`\`\`%s\n%s\n\`\`\`\n\n</details>\n"
-              printf "${format}" "${title}" "${title}" "${code_block}" "${content}" | tee -a ${{ env.release_md }}
+              printf "${format}" "${title}" "${title}" "${code_block}" "${content}" | tee -a "${release_md}"
             else
-              printf "${format}" "${title}" "${content}" | tee -a ${{ env.release_md }}
+              # 使用简单标题和内容格式
+              printf "${format}" "${title}" "${content}" | tee -a "${release_md}"
             fi
           }
 
+          # 添加时间戳信息
           record_to_markdown "Timestamp" "- [x] $(date +"%Y-%m-%d %H:%M:%S %z")"
+          # 添加仓库信息
           record_to_markdown "Repository" "- [x] ${repo_target}"
+          # 添加分支信息
           record_to_markdown "Repository Branch" "- [x] ${repo_target_branch}"
 
-          sum_json_content=$(jq '.' "${{ env.metadata_sum_path }}")
+          # 添加校验和信息(JSON格式)
+          sum_json_content=$(jq '.' "${metadata_sum_path}")
           record_to_markdown "sha256sum" "${sum_json_content}" "json"
 
-          cat ${{ env.release_md }}
-          echo "release_md=${release_md}" | tee -a ${GITHUB_OUTPUT}
-          echo "status=success" | tee -a ${GITHUB_OUTPUT}
+          # 显示生成的内容
+          cat "${release_md}"
+          # 设置输出变量
+          echo "release_md=${release_md}" | tee -a "${GITHUB_OUTPUT}"
+          echo "status=success" | tee -a "${GITHUB_OUTPUT}"
 
       - name: Upload OpenWrt to Release
         id: release
