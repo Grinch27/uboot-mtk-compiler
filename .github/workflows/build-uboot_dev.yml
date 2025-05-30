@@ -55,6 +55,11 @@ on:
         type: string
         required: false
         default: "ubuntu-24.04"
+      use_devel_sources:
+        description: "Use Ubuntu Devel Sources"
+        type: boolean
+        required: false
+        default: false
   workflow_call:
     inputs:
       device_branch:
@@ -69,6 +74,11 @@ on:
         description: "Runner Image"
         required: false
         type: string
+      use_devel_sources:
+        description: "Use Ubuntu Devel Sources"
+        type: boolean
+        required: false
+        default: false
 
 run-name: U-Boot - ${{ inputs.device_branch || 'all' }}
 
@@ -365,6 +375,34 @@ jobs:
           # Verify GCC version
           gcc --version
 
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Configure APT Sources
+        id: configure-apt
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          use_devel: ${{ inputs.use_devel_sources || false }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          # 添加 Ubuntu devel 源
+          echo "Adding Ubuntu devel sources..."
+          sudo tee /etc/apt/sources.list.d/ubuntu-devel.sources > /dev/null <<EOF
+          Types: deb
+          URIs: http://archive.ubuntu.com/ubuntu/
+          Suites: devel devel-updates
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
+
+          # 设置 devel 源的优先级
+          sudo tee /etc/apt/preferences.d/devel-priority > /dev/null <<EOF
+          Package: *
+          Pin: release a=devel
+          Pin-Priority: 100
+          EOF
+
+          sudo apt-get update
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Switch for GNU C++ & AArch64 Cross-Compiler
