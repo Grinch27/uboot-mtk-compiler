@@ -45,6 +45,8 @@ on:
           - glinet_gl-mt2500
           - ax3000t_an8855
           - ruijie_rg-x60
+          - cudy_tr3000-v1
+          - netcore_n60-pro
       custom_env:
         description: "key=value;key=value"
         type: string
@@ -611,6 +613,8 @@ jobs:
             ["glinet_gl-mt2500"]="mt7981|0|0,1" # glinet gl-mt2500
             ["ax3000t_an8855"]="mt7981|0,1|0,1" # xiaomi ax3000t an8855 variant [with MULTI_LAYOUT]
             ["ruijie_rg-x60"]="mt7986|0,1|0,1" # Ruijie RG-X60 [with MULTI_LAYOUT]
+            ["cudy_tr3000-v1"]="mt7981|0|0,1" # Cudy TR3000 v1
+            ["netcore_n60-pro"]="mt7986|0|0,1" # Netcore N60 Pro
           )
 
           # ===== Backup Target Repository =====
