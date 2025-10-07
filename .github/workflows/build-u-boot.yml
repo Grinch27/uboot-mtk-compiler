@@ -86,6 +86,7 @@ jobs:
     runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
     env:
       app_branch: "uboot"
+      gcc_version: "14"
     steps:
       - name: Set environment variable - ${{ env.device_branch }}
         id: var
