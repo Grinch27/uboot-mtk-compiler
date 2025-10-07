@@ -139,93 +139,6 @@ jobs:
         run: |
           echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
 
-      - name: Clean Snap
-        id: clean-snap
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        working-directory: /
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          sudo -E apt-get -qq -y update
-          sudo snap list
-
-          # ===== Remove snap =====
-          for p in $(snap list | awk '{print $1}'); do
-            sudo snap remove $p
-          done
-          sudo systemctl stop snapd
-          sudo systemctl disable --now snapd.socket
-          sudo apt-get -qq -y autoremove --purge snapd
-          sudo rm -rf ~/snap
-          sudo rm -rf /snap
-          sudo rm -rf /var/snap
-          sudo rm -rf /var/lib/snapd
-          sudo rm -rf /var/cache/snapd
-          sudo bash -c 'cat <<EOF > /etc/apt/preferences.d/nosnap.pref
-          Package: snapd
-          Pin: release a=*
-          Pin-Priority: -10
-          EOF'
-          sudo -E systemctl daemon-reload
-
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
-      - name: Clear environment
-        id: clearinit
-        # if: ${{ 'true' == 'false' }} # disable
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        working-directory: /
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          docker image list
-          # 删除docker所有镜像
-          # for image in $(docker images -q); do
-          #   docker rmi -f $image
-          # done
-          # 删除所有不再使用的 docker 镜像、容器、网络和数据卷
-          docker image prune -a
-
-          # 如果环境变量 AGENT_TOOLSDIRECTORY 不为空，则删除该目录及其所有内容
-          [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
-          # 删除指定的目录及其所有内容，忽略所有错误信息
-          # sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
-          # 关闭所有交换空间 删除指定的交换文件
-          sudo swapoff -a
-          sudo rm -f /swapfile /mnt/swapfile
-
-          # ===== Clean apt =====
-          packages_purge=(
-            "docker*"
-            "ghc*"
-            "zulu*"
-            "google*"
-            "firefox*"
-            "dotnet*"
-            "powershell*"
-            "openjdk*"
-            "mongodb*"
-            "moby*"
-            "mysql*"
-            "postgresql*"
-            "sqlite3*"
-            "apache2*"
-            "nginx*"
-            "php*"
-          )
-          sudo -E apt-get -qq -y update
-          sudo -E apt-get -qq -y purge "${packages_purge[@]}" || true
-          sudo -E apt-get -qq -y autoremove --purge
-          sudo -E apt-get -qq clean
-          sudo -E systemctl daemon-reload
-          apt list --installed
-          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
-
-          df -Th
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
       - name: Initialization environment
         id: init
         env:
@@ -308,58 +221,8 @@ jobs:
             "zip"
             "zlib1g-dev"
           )
-          # Commented out packages (sorted):
-          # "ccache"
-          # "lib32gcc-s1"
-          # "libc6-dev-i386"
-          # "libdb++-dev"
-          # "gcc-multilib"
-          # "g++-multilib"
-          # "libncursesw5"
-          # "libncursesw5-dev"
-          # "lrzsz"
-          # "msmtp"
-          # "nano"
-          # "p7zip"
-          # "python3-docutils"
-          # "python3-ply"
-          # "qemu-utils"
-          # "texinfo"
-          # "xmlto"
-          # "xxd"
-          packages_slim=(
-            "bc"
-            "bison"
-            "build-essential"
-            "ca-certificates"
-            "curl"
-            "flex"
-            "g++"
-            "gcc"
-            "gcc-aarch64-linux-gnu"
-            "git"
-            "git-lfs"
-            "gnupg"
-            "gperf"
-            "libelf-dev"
-            "lz4"
-            "libssl-dev"
-            "libxml2"
-            "libxml2-utils"
-            "lzop"
-            "make"
-            "python3"
-            "rsync"
-            "schedtool"
-            "squashfs-tools"
-            "vim"
-            "xsltproc"
-            "zip"
-            "zlib1g-dev"
-          )
           sudo -E apt-get -y -qq update
           sudo -E apt-get -y -qq install "${packages_install[@]}"
-          # sudo -E apt-get -y -qq install "${packages_slim[@]}"
           sudo -E apt-get -qq -y autoremove --purge
           sudo -E apt-get -qq clean
           sudo -E systemctl daemon-reload
@@ -371,130 +234,223 @@ jobs:
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Switch for GNU C++ & AArch64 Cross-Compiler
+      # ========== General Environment Setup: Start ==========
+      - name: (Purge) Snap
+        id: purge-snap
+        uses: Grinch27/github-actions/.github/actions/purge-snap@main
+
+      - name: (Clean) Docker Images
+        id: clean-docker
+        uses: Grinch27/github-actions/.github/actions/clean-docker_image@main
+
+      - name: (Clean) Runner
+        id: clean-runner
+        uses: Grinch27/github-actions/.github/actions/clean-runner@main
+
+      - name: (Purge) Existing GCC
+        id: purge-gcc
+        if: ${{ env.gcc_purge == 'true' }}
+        uses: Grinch27/github-actions/.github/actions/purge-gcc@main
+
+      - name: (Setup) GCC - ${{ env.gcc_version }}
+        id: setup-gcc
+        if: ${{ env.gcc_install == 'true' }}
+        uses: Grinch27/github-actions/.github/actions/setup-gcc@main
+
+      - name: (Switch) Installed GCC - ${{ env.gcc_version }}
         id: switch-gcc
-        # if: ${{ 'true' == 'false' }} # disable
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          gcc_version: ${{ env.gcc_version || '14' }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
+        if: ${{ env.gcc_switch == 'true' }}
+        uses: Grinch27/github-actions/.github/actions/switch-gcc@main
+        with:
+          gcc_version: ${{ env.gcc_version }}
 
-          sudo -E apt-get -yqq update
+      - name: (Purge) Existing Clang
+        id: purge-clang
+        if: ${{ env.clang_purge == 'true' }}
+        uses: Grinch27/github-actions/.github/actions/purge-clang@main
 
-          packages_install=(
-            "gcc-${gcc_version}"
-            "g++-${gcc_version}"
-            "gcc-${gcc_version}-multilib"
-            "g++-${gcc_version}-multilib"
-            "gcc-${gcc_version}-aarch64-linux-gnu"
-            "cpp-${gcc_version}-aarch64-linux-gnu"
-          )
-          sudo -E apt-get -yqq install "${packages_install[@]}"
+      - name: (Setup) Clang - ${{ env.clang_version }}
+        id: setup-clang
+        if: ${{ env.clang_install == 'true' }}
+        uses: Grinch27/github-actions/.github/actions/setup-clang@main
 
-          # 设置 update-alternatives 以管理不同版本的GCC、G++和AArch64工具
-          ls /usr/bin/gcc-* /usr/bin/g++-*
-          tools_gcc=(
-            "gcc"
-            "gcc-ar"
-            "gcc-nm"
-            "gcc-ranlib"
-            "g++"
-          )
-          for tool in "${tools_gcc[@]}"; do
-            versions=$(ls /usr/bin/${tool}-* | grep -Eo '[0-9]+$' | sort -u)
-            for version in ${versions}; do
-              sudo update-alternatives --install /usr/bin/${tool} ${tool} /usr/bin/${tool}-${version} ${version}
-            done
-          done
-          sudo update-alternatives --query gcc
-          sudo update-alternatives --query g++
-          # 切换到所需版本
-          for tool in "${tools_gcc[@]}"; do
-            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
-          done
-          # 验证版本
-          gcc --version
-          g++ --version
+      - name: (Switch) Installed Clang - ${{ env.clang_version }}
+        id: switch-clang
+        if: ${{ env.clang_switch == 'true' }}
+        uses: Grinch27/github-actions/.github/actions/switch-clang@main
+        with:
+          clang_version: ${{ env.clang_version }}
 
-          # AArch64专用设置，涵盖所有带版本号的aarch64-linux-gnu工具
-          ls /usr/bin/aarch64-linux-gnu-*
-          tools_aarch64=(
-            "aarch64-linux-gnu-gcc"
-            "aarch64-linux-gnu-cpp"
-            "aarch64-linux-gnu-gcc-ar"
-            "aarch64-linux-gnu-gcc-nm"
-            "aarch64-linux-gnu-gcc-ranlib"
-            "aarch64-linux-gnu-gcov"
-            "aarch64-linux-gnu-gcov-dump"
-            "aarch64-linux-gnu-gcov-tool"
-            "aarch64-linux-gnu-lto-dump"
-          )
-          for tool in "${tools_aarch64[@]}"; do
-            versions=$(ls /usr/bin/${tool}-* 2>/dev/null | grep -Eo '[0-9]+$' | sort -u)
-            for version in ${versions}; do
-              sudo update-alternatives --install /usr/bin/${tool} ${tool} /usr/bin/${tool}-${version} ${version}
-            done
-          done
-          sudo update-alternatives --query aarch64-linux-gnu-gcc
-          # 切换到所需版本
-          for tool in "${tools_aarch64[@]}"; do
-            sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
-          done
+      - name: (Switch) AArch64 Cross-Compiler - ${{ env.gcc_version }}
+        id: switch-gcc_aarch64
+        # if: ${{ inputs.Target_System == 'MediaTek_Ralink_ARM' }}
+        uses: Grinch27/github-actions/.github/actions/switch-gcc_aarch64@main
+        with:
+          gcc_version: ${{ env.gcc_version }}
 
-          # 验证版本
-          aarch64-linux-gnu-gcc --version
+      - name: (Purge) JDK
+        id: purge-jdk
+        if: ${{ env.jdk_purge == 'true' }}
+        uses: Grinch27/github-actions/.github/actions/purge-jdk@main
 
-          echo "Switched to GCC/G++ and AArch64 GCC version ${gcc_version}."
-          echo "status=success" >> ${GITHUB_OUTPUT}
+      - name: (Setup) JDK - ${{ env.jdk_version }}
+        id: setup-jdk
+        if: ${{ env.jdk_install == 'true' }}
+        uses: actions/setup-java@main
+        with:
+          distribution: "temurin"
+          java-version: ${{ env.jdk_version }}
 
-      - name: Create simulated physical disk
+      - name: (Setup) Docker
+        id: setup-docker
+        if: ${{ env.docker_install == 'true' }}
+        uses: Grinch27/github-actions/.github/actions/setup-docker@main
+
+      - name: (Setup) QEMU
+        id: setup-qemu
+        if: ${{ env.qemu_install == 'true' }}
+        uses: docker/setup-qemu-action@master
+        # with:
+        #   platforms: ${{ env.arch_branch }}
+
+      - name: (Setup) disk workspace
         id: disk
-        env:
+        uses: Grinch27/github-actions/.github/actions/setup-disk@main
+        with:
           path_build: ${{ env.path_build }}
-          mnt_num: 1
           root_num: 4
-        working-directory: /
-        run: |
-          echo "Current working directory: $(pwd)"
+          mnt_num: 1
 
-          # 获取 /mnt 和 / 分区的剩余空间
-          mnt_available=$(df -B1 /mnt | tail -1 | awk '{print $4}')
-          root_available=$(df -B1 / | tail -1 | awk '{print $4}')
-          echo "Raw available space in /mnt (bytes): ${mnt_available}"
-          echo "Raw available space in / (bytes): ${root_available}"
+      - name: (Check) toolchain
+        id: check-toolchain
+        uses: Grinch27/github-actions/.github/actions/check-toolchain@main
 
-          # 减去缓冲空间：/mnt 和 / 分区分别减去缓冲
-          gb2bytes=$((1024 * 1024 * 1024))
-          mnt_size=$((${mnt_available} - ${{ env.mnt_num }} * ${gb2bytes} ))
-          root_size=$((${root_available} - ${{ env.root_num }} * ${gb2bytes} ))
-          echo "Available space in /mnt (bytes): ${mnt_size}"
-          echo "Available space in / (bytes): ${root_size}"
+      # ========== General Environment Setup: End ==========
 
-          # 使用 LVM 创建物理卷、卷组和逻辑卷
-          # sudo pvcreate /dev/loop6
-          # sudo vgcreate github /dev/loop6
+      # - name: Switch for GNU C++ & AArch64 Cross-Compiler
+      #   id: switch-gcc
+      #   # if: ${{ 'true' == 'false' }} # disable
+      #   env:
+      #     DEBIAN_FRONTEND: noninteractive
+      #     gcc_version: ${{ env.gcc_version || '14' }}
+      #   run: |
+      #     echo -e "Current working directory: $(pwd)"
 
-          # 使用 LVM 创建物理卷、卷组和逻辑卷，将文件关联到 loop 设备, 在这两个 loop 设备上创建物理卷, 创建一个名为 github 的卷组，包含这两个物理卷
-          sudo truncate -s "${mnt_size}" /mnt/mnt.img
-          sudo truncate -s "${root_size}" /root.img
-          sudo losetup /dev/loop6 /mnt/mnt.img
-          sudo losetup /dev/loop7 /root.img
-          sudo pvcreate /dev/loop6
-          sudo pvcreate /dev/loop7
-          sudo vgcreate github /dev/loop6 /dev/loop7
+      #     sudo -E apt-get -yqq update
 
-          # 在 github 卷组上创建一个名为 runner 的逻辑卷，使用所有可用空间, 在 runner 逻辑卷上创建一个 XFS 文件系统
-          sudo lvcreate -n runner -l 100%FREE github
-          sudo mkfs.xfs /dev/github/runner
+      #     packages_install=(
+      #       "gcc-${gcc_version}"
+      #       "g++-${gcc_version}"
+      #       "gcc-${gcc_version}-multilib"
+      #       "g++-${gcc_version}-multilib"
+      #       "gcc-${gcc_version}-aarch64-linux-gnu"
+      #       "cpp-${gcc_version}-aarch64-linux-gnu"
+      #     )
+      #     sudo -E apt-get -yqq install "${packages_install[@]}"
 
-          # 创建一个挂载点 ${path_build}, 将 runner 逻辑卷挂载到 ${path_build}, 将 ${path_build} 的所有者和组更改为 runner
-          sudo mkdir -p "${path_build}"
-          sudo mount /dev/github/runner "${path_build}"
-          sudo chown -R runner:runner "${path_build}"
+      #     # 设置 update-alternatives 以管理不同版本的GCC、G++和AArch64工具
+      #     ls /usr/bin/gcc-* /usr/bin/g++-*
+      #     tools_gcc=(
+      #       "gcc"
+      #       "gcc-ar"
+      #       "gcc-nm"
+      #       "gcc-ranlib"
+      #       "g++"
+      #     )
+      #     for tool in "${tools_gcc[@]}"; do
+      #       versions=$(ls /usr/bin/${tool}-* | grep -Eo '[0-9]+$' | sort -u)
+      #       for version in ${versions}; do
+      #         sudo update-alternatives --install /usr/bin/${tool} ${tool} /usr/bin/${tool}-${version} ${version}
+      #       done
+      #     done
+      #     sudo update-alternatives --query gcc
+      #     sudo update-alternatives --query g++
+      #     # 切换到所需版本
+      #     for tool in "${tools_gcc[@]}"; do
+      #       sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
+      #     done
+      #     # 验证版本
+      #     gcc --version
+      #     g++ --version
 
-          df -Th
-          echo "status=success" >> "${GITHUB_OUTPUT}"
+      #     # AArch64专用设置，涵盖所有带版本号的aarch64-linux-gnu工具
+      #     ls /usr/bin/aarch64-linux-gnu-*
+      #     tools_aarch64=(
+      #       "aarch64-linux-gnu-gcc"
+      #       "aarch64-linux-gnu-cpp"
+      #       "aarch64-linux-gnu-gcc-ar"
+      #       "aarch64-linux-gnu-gcc-nm"
+      #       "aarch64-linux-gnu-gcc-ranlib"
+      #       "aarch64-linux-gnu-gcov"
+      #       "aarch64-linux-gnu-gcov-dump"
+      #       "aarch64-linux-gnu-gcov-tool"
+      #       "aarch64-linux-gnu-lto-dump"
+      #     )
+      #     for tool in "${tools_aarch64[@]}"; do
+      #       versions=$(ls /usr/bin/${tool}-* 2>/dev/null | grep -Eo '[0-9]+$' | sort -u)
+      #       for version in ${versions}; do
+      #         sudo update-alternatives --install /usr/bin/${tool} ${tool} /usr/bin/${tool}-${version} ${version}
+      #       done
+      #     done
+      #     sudo update-alternatives --query aarch64-linux-gnu-gcc
+      #     # 切换到所需版本
+      #     for tool in "${tools_aarch64[@]}"; do
+      #       sudo update-alternatives --set ${tool} /usr/bin/${tool}-${gcc_version}
+      #     done
+
+      #     # 验证版本
+      #     aarch64-linux-gnu-gcc --version
+
+      #     echo "Switched to GCC/G++ and AArch64 GCC version ${gcc_version}."
+      #     echo "status=success" >> ${GITHUB_OUTPUT}
+
+      # - name: Create simulated physical disk
+      #   id: disk
+      #   env:
+      #     path_build: ${{ env.path_build }}
+      #     mnt_num: 1
+      #     root_num: 4
+      #   working-directory: /
+      #   run: |
+      #     echo "Current working directory: $(pwd)"
+
+      #     # 获取 /mnt 和 / 分区的剩余空间
+      #     mnt_available=$(df -B1 /mnt | tail -1 | awk '{print $4}')
+      #     root_available=$(df -B1 / | tail -1 | awk '{print $4}')
+      #     echo "Raw available space in /mnt (bytes): ${mnt_available}"
+      #     echo "Raw available space in / (bytes): ${root_available}"
+
+      #     # 减去缓冲空间：/mnt 和 / 分区分别减去缓冲
+      #     gb2bytes=$((1024 * 1024 * 1024))
+      #     mnt_size=$((${mnt_available} - ${{ env.mnt_num }} * ${gb2bytes} ))
+      #     root_size=$((${root_available} - ${{ env.root_num }} * ${gb2bytes} ))
+      #     echo "Available space in /mnt (bytes): ${mnt_size}"
+      #     echo "Available space in / (bytes): ${root_size}"
+
+      #     # 使用 LVM 创建物理卷、卷组和逻辑卷
+      #     # sudo pvcreate /dev/loop6
+      #     # sudo vgcreate github /dev/loop6
+
+      #     # 使用 LVM 创建物理卷、卷组和逻辑卷，将文件关联到 loop 设备, 在这两个 loop 设备上创建物理卷, 创建一个名为 github 的卷组，包含这两个物理卷
+      #     sudo truncate -s "${mnt_size}" /mnt/mnt.img
+      #     sudo truncate -s "${root_size}" /root.img
+      #     sudo losetup /dev/loop6 /mnt/mnt.img
+      #     sudo losetup /dev/loop7 /root.img
+      #     sudo pvcreate /dev/loop6
+      #     sudo pvcreate /dev/loop7
+      #     sudo vgcreate github /dev/loop6 /dev/loop7
+
+      #     # 在 github 卷组上创建一个名为 runner 的逻辑卷，使用所有可用空间, 在 runner 逻辑卷上创建一个 XFS 文件系统
+      #     sudo lvcreate -n runner -l 100%FREE github
+      #     sudo mkfs.xfs /dev/github/runner
+
+      #     # 创建一个挂载点 ${path_build}, 将 runner 逻辑卷挂载到 ${path_build}, 将 ${path_build} 的所有者和组更改为 runner
+      #     sudo mkdir -p "${path_build}"
+      #     sudo mount /dev/github/runner "${path_build}"
+      #     sudo chown -R runner:runner "${path_build}"
+
+      #     df -Th
+      #     echo "status=success" >> "${GITHUB_OUTPUT}"
 
       - name: Clone Target Repository
         id: clonesys
