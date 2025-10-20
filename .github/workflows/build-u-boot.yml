@@ -220,39 +220,6 @@ jobs:
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      # - name: Version of Target Repo
-      #   id: version-target
-      #   working-directory: ${{ env.path_target }}
-      #   run: |
-      #     echo -e "Current working directory: $(pwd)"
-      #     set -x
-
-      #     # ----- git describe --all --long -> refs/heads/master-0-gf5b6b6d -----
-      #     gitlocal_describe=$(git describe --all --long | cut -d'/' -f2-)
-      #     echo "gitlocal_describe=${gitlocal_describe}"
-
-      #     # ----- branch: git rev-parse --abbrev-ref HEAD -> master -----
-      #     gitlocal_branch=$(git rev-parse --abbrev-ref HEAD)
-      #     echo "gitlocal_branch=${gitlocal_branch}"
-
-      #     # ----- short hash: git rev-parse --short HEAD -> f5b6b6d -----
-      #     gitlocal_short=$(git rev-parse --short HEAD)
-      #     echo "gitlocal_short=${gitlocal_short}"
-
-      #     # ----- full hash: git rev-parse HEAD -----
-      #     gitlocal_hash=$(git rev-parse HEAD)
-      #     echo "gitlocal_hash=${gitlocal_hash}"
-
-      #     # ----- commit count: git rev-list --count HEAD -> 1000 ----- !!! work without --depth=1
-      #     gitlocal_count=$(git rev-list --count HEAD)
-      #     echo "gitlocal_count=${gitlocal_count}"
-
-      #     # ----- DIY -----
-      #     tag_release="${gitlocal_branch}-${gitlocal_count}-${gitlocal_short}"
-
-      #     echo "tag_release=${tag_release}" | tee -a $GITHUB_ENV
-      #     echo "status=success" | tee -a ${GITHUB_OUTPUT}
-
       - name: Version of Target Repo
         id: version-target
         uses: Grinch27/github-actions/.github/actions/git-rev@main
@@ -492,7 +459,8 @@ jobs:
           timestamp: ${{ steps.output.outputs.timestamp }}
           target_ext: "tar"
           release_md: ${{ steps.release-md.outputs.release_md }}
-          tag_release: ${{ env.tag_release || env.app_branch }}
+          # tag_release: ${{ env.tag_release || env.app_branch }}
+          tag_release: ${{ steps.version-target.outputs.timestamp }}
         with:
           name: "${{ env.timestamp }}_${{ env.tag_release }}"
           tag: "${{ env.tag_release }}"
