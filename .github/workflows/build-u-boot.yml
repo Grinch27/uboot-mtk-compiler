@@ -221,7 +221,7 @@ jobs:
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Version of Target Repo
-        id: version-target
+        id: git-rev
         uses: Grinch27/github-actions/.github/actions/git-rev@main
         with:
           path_target: ${{ env.path_target }}
@@ -460,7 +460,7 @@ jobs:
           target_ext: "tar"
           release_md: ${{ steps.release-md.outputs.release_md }}
           # tag_release: ${{ env.tag_release || env.app_branch }}
-          tag_release: ${{ steps.version-target.outputs.timestamp }}
+          tag_release: ${{ steps.git-rev.outputs.git_desc }}
         with:
           name: "${{ env.timestamp }}_${{ env.tag_release }}"
           tag: "${{ env.tag_release }}"
