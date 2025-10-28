@@ -10,12 +10,10 @@ Github Actions for u-boot complie targets hanwckf/bl-mt798x.
 
 原有的 u-boot 编译环境基于 hanwckf/bl-mt798x 项目。随着 OpenWrt 对 mt7981 和 mt7986 平台的支持日益完善，建议使用者迁移到 OpenWrt 的 u-boot，以获得更好的维护和更新支持。
 
-### 0. hanwckf_uboot vs OpenWrt U-Boot layout
-
 - [hanwckf_uboot](https://github.com/hanwckf/bl-mt798x "bl-mt798x"): 解锁 SSH -> 刷 FIP 分区
 - OpenWrt U-Boot layout：解锁 SSH -> 安装内核 kmod-mtd-rw 模块 -> 刷 BL2 和 FIP 分区
 
-### 1. 从原厂 stock 到 hanwckf/bl-mt798x
+### 0. 从原厂 stock 到 hanwckf/bl-mt798x
 
 #### 从互联网途径获取到的 AX3000T root 初始密码计算代码
 
@@ -64,4 +62,36 @@ http://192.168.31.1/cgi-bin/luci/;stok=1234567890abcdefg/web/home#router
 
 其中 1234567890abcdefg 就是本次 stok 的值。
 
-###
+### 使用 shell 脚本开启 dropbear SSH 服务
+
+将调用 enable_dropbear 后的 stok 值进行实际修改，运行后即可开启 dropbear SSH 服务。
+
+```bash
+enable_dropbear() {
+    local stok=""
+    local ip="192.168.31.1"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -s|--stok)
+                stok="$2"
+                shift 2
+                ;;
+            -i|--ip)
+                ip="$2"
+                shift 2
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    local base="http://${ip}/cgi-bin/luci/;stok=${stok}/api/misystem/arn_switch"
+    # curl in linux shell
+    curl -fsS -X POST "$base" -d "open=1&model=1&level=%0Anvram%20set%20ssh_en%3D1%0A"
+    curl -fsS -X POST "$base" -d "open=1&model=1&level=%0Anvram%20commit%0A"
+    curl -fsS -X POST "$base" -d "open=1&model=1&level=%0Ased%20-i%20's%2Fchannel%3D.*%2Fchannel%3D%22debug%22%2Fg'%20%2Fetc%2Finit.d%2Fdropbear%0A"
+    curl -fsS -X POST "$base" -d "open=1&model=1&level=%0A%2Fetc%2Finit.d%2Fdropbear%20start%0A"
+}
+# 示例：根据实际情况修改 stok 和 ip
+enable_dropbear --stok 1234567890abcdefg --ip 192.168.31.1
+```
