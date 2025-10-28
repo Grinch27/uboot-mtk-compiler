@@ -13,7 +13,7 @@ Github Actions for u-boot complie targets hanwckf/bl-mt798x.
 - [hanwckf_uboot](https://github.com/hanwckf/bl-mt798x "bl-mt798x"): 解锁 SSH -> 刷 FIP 分区
 - OpenWrt U-Boot layout：解锁 SSH -> 安装内核 kmod-mtd-rw 模块 -> 刷 BL2 和 FIP 分区
 
-### 0. 从原厂 stock 到 hanwckf/bl-mt798x
+### 0. 获取 SSH
 
 #### 从互联网途径获取到的 AX3000T root 初始密码计算代码
 
@@ -94,4 +94,13 @@ enable_dropbear() {
 }
 # 示例：根据实际情况修改 stok 和 ip
 enable_dropbear --stok 1234567890abcdefg --ip 192.168.31.1
+```
+
+此时，可以通过 SSH 登录到设备，默认用户名为 root，密码为前面计算得到的初始密码。
+
+```bash
+# 清理旧ssh密钥
+ssh-keygen -R 192.168.31.1
+# 登录设备
+ssh root@192.168.31.1
 ```
