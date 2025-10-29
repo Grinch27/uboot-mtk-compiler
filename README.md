@@ -119,7 +119,6 @@ ssh root@192.168.31.1 'cat /proc/mtd'
 
 # 备份所有分区到 /tmp 目录
 # 注意，请根据实际的 mtd 分区数量调整以下命令
-
 backup_mtd() {
     local ip="192.168.31.1"
     while [[ $# -gt 0 ]]; do
@@ -153,7 +152,7 @@ backup_mtd() {
     local filename
     for mtd in "${!MTDS[@]}"; do
         filename="${MTDS[$mtd]}"
-        echo "Backing up ${mtd} -> ${filename} from ${ip}"
+        echo "Backup ${ip}: ${mtd} -> ${filename}"
         hash_remote=$(ssh root@"$ip" "busybox sha256sum ${mtd}" | awk '{print $1}')
         ssh root@"$ip" "dd if=${mtd} bs=4M status=none" | dd of="./${filename}" bs=4M status=progress
         hash_local=$(sha256sum "./${filename}" | awk '{print $1}')
