@@ -104,3 +104,62 @@ ssh-keygen -R 192.168.31.1
 # 登录设备
 ssh root@192.168.31.1
 ```
+
+### 1. 备份
+
+在进行任何修改之前，建议先备份设备的现有固件和配置，以防止意外情况发生。
+
+#### 查看设备 MTD 分区信息
+
+如非特殊说明，以下命令均在主机的 shell 终端中执行。
+
+```bash
+# 查看分区情况
+ssh root@192.168.31.1 'cat /proc/mtd'
+
+# 备份所有分区到 /tmp 目录
+# 注意，请根据实际的 mtd 分区数量调整以下命令
+
+backup_mtd() {
+    local ip="192.168.31.1"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--ip)
+                ip="$2"
+                shift 2
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    declare -A MTDS=(
+        ["/dev/mtd0"]="spi0.bin"
+        ["/dev/mtd1"]="BL2.bin"
+        ["/dev/mtd2"]="Nvram.bin"
+        ["/dev/mtd3"]="Bdata.bin"
+        ["/dev/mtd4"]="Factory.bin"
+        ["/dev/mtd5"]="FIP.bin"
+        ["/dev/mtd6"]="crash.bin"
+        ["/dev/mtd7"]="crash_log.bin"
+        ["/dev/mtd8"]="ubi.bin"
+        ["/dev/mtd9"]="ubi1.bin"
+        ["/dev/mtd10"]="overlay.bin"
+        ["/dev/mtd11"]="data.bin"
+        ["/dev/mtd12"]="KF.bin"
+    )
+    local hash_remote
+    local hash_local
+    local filename
+    for mtd in "${!MTDS[@]}"; do
+        filename="${MTDS[$mtd]}"
+        echo "Backing up ${mtd} -> ${filename} from ${ip}"
+        hash_remote=$(ssh root@"$ip" "busybox sha256sum ${mtd}" | awk '{print $1}')
+        ssh root@"$ip" "dd if=${mtd} bs=4M status=none" | dd of="./${filename}" bs=4M status=progress
+        hash_local=$(sha256sum "./${filename}" | awk '{print $1}')
+        [[ "$hash_remote" == "$hash_local" ]] || { echo "校验失败: ${mtd}"; return 1; }
+    done
+}
+# 示例：根据实际情况修改 ip
+backup_mtd --ip 192.168.31.1
+```
