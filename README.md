@@ -176,6 +176,10 @@ backup_mtd --ip 192.168.31.1
 
 #### 将 hanwckf_uboot 刷写至 FIP 分区
 
+首先，确保已经从 hanwckf/bl-mt798x 项目编译并获取到所需的 u-boot 固件文件，例如 `mt7981_ax3000t-fip-fixed-parts-multi-layout.bin`。
+
+并将该文件上传至设备的 `/tmp` 目录下，以下提供一个上传文件并校验的示例脚本：
+
 ```bash
 upload_file() {
     local ip="192.168.31.1"
@@ -218,6 +222,6 @@ upload_file() {
         return 1
     fi
 }
-# 示例
-upload_file --file "mt7981_ax3000t-fip-fixed-parts-multi-layout.bin"
+# 示例 将文件上传至设备 /tmp 目录，并校验
+upload_file --file "./mt7981_ax3000t-fip-fixed-parts-multi-layout.bin"
 ```
