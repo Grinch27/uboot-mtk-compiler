@@ -162,3 +162,66 @@ backup_mtd() {
 # 示例：根据实际情况修改 ip
 backup_mtd --ip 192.168.31.1
 ```
+
+### 2. 刷写 MTD 分区
+
+在实践中，hanwckf_uboot 刷写 FIP 分区即可用于后续系统固件的输入。
+但 OpenWrt U-Boot layout 需要刷写 BL2 和 FIP 分区，且往往需要安装 kmod-mtd-rw 模块以支持写入操作。
+因而，推荐的操作顺序是：
+
+- 将 hanwckf_uboot 刷写至 FIP 分区。
+- 完成后重启设备并进入恢复模式，导入 hanwckf_uboot 支持的 OpenWrt 固件(集成 kmod-mtd-rw 模块)进行系统安装。
+- 成功安装(集成 kmod-mtd-rw 模块)的 OpenWrt 系统后，登录设备，使用 kmod-mtd-rw 模块将 OpenWrt U-Boot layout 刷写 BL2 和 FIP 分区。
+- 完成后重启设备并进入恢复模式，导入 OpenWrt 固件进行系统安装。
+
+#### 将 hanwckf_uboot 刷写至 FIP 分区
+
+```bash
+upload_file() {
+    local ip="192.168.31.1"
+    local file=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--ip)
+                ip="$2"; shift 2 ;;
+            -f|--file)
+                file="$2"; shift 2 ;;
+            *)
+                echo "未识别的参数: $1" >&2; return 2 ;;
+        esac
+    done
+
+    [[ -n "${file}" ]] || { echo "请使用 --file 指定要上传的文件"; return 2; }
+
+    local local_path="${file}"
+    [[ "${local_path}" == /* ]] || local_path="./${local_path}"
+    [[ -f "${local_path}" ]] || { echo "[跳过] 未找到本地文件: ${local_path}"; return 1; }
+
+    local filename="$(basename "${local_path}")"
+    local remote_path="/tmp/${filename}"
+    local hash_local
+    local hash_remote
+
+    hash_local=$(sha256sum "${local_path}" | awk '{print $1}')
+    echo "[上传] ${local_path} (sha256=${hash_local})"
+
+    if ! ssh root@"${ip}" "cat > '${remote_path}'" < "${local_path}"; then
+        echo "[错误] 传输失败: ${local_path}"
+        return 1
+    fi
+
+    hash_remote=$(ssh root@"${ip}" "sha256sum '${remote_path}' 2>/dev/null" | awk '{print $1}')
+    [[ -n "${hash_remote}" ]] || { echo "[错误] 远端未获取到 sha256: ${remote_path}"; return 1; }
+
+    if [[ "${hash_remote}" == "${hash_local}" ]]; then
+        echo "[OK] 校验通过 ${filename} sha256=${hash_remote}"
+    else
+        echo "[不匹配] ${filename} 本地=${hash_local} 远端=${hash_remote}"
+        echo "        请重新执行：ssh root@${ip} \"cat > '${remote_path}'\" < '${local_path}'"
+        return 1
+    fi
+}
+# 示例
+upload_file --file "mt7981_ax3000t-fip-fixed-parts-multi-layout.bin"
+```
