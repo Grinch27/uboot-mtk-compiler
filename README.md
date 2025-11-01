@@ -180,12 +180,15 @@ backup_mtd --ip 192.168.31.1
 upload_file() {
     local ip="192.168.31.1"
     local file=""
+    local remote_dir="/tmp"
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -i|--ip)
                 ip="$2"; shift 2 ;;
             -f|--file)
                 file="$2"; shift 2 ;;
+            -r|--remote_dir)
+                remote_dir="$2"; shift 2 ;;
             *)
                 break ;;
         esac
@@ -193,20 +196,20 @@ upload_file() {
 
     [[ -f "${file}" ]] || { echo "[跳过] 未找到本地文件: ${file}"; return 1; }
     local filename="$(basename "${file}")"
-    local path_remote="/tmp/${filename}"
+    local remote_path="${remote_dir%/}/${filename}"
     local hash_local
     local hash_remote
 
     hash_local=$(sha256sum "${file}" | awk '{print $1}')
     echo "[上传] ${file} (sha256=${hash_local})"
 
-    if ! ssh root@"${ip}" "cat > '${path_remote}'" < "${file}"; then
+    if ! ssh root@"${ip}" "cat > '${remote_path}'" < "${file}"; then
         echo "local -> remote: 传输失败: ${file}"
         return 1
     fi
 
-    hash_remote=$(ssh root@"${ip}" "sha256sum '${path_remote}' 2>/dev/null" | awk '{print $1}')
-    [[ -n "${hash_remote}" ]] || { echo "remote: 未获取到 sha256: ${path_remote}"; return 1; }
+    hash_remote=$(ssh root@"${ip}" "sha256sum '${remote_path}' 2>/dev/null" | awk '{print $1}')
+    [[ -n "${hash_remote}" ]] || { echo "remote: 未获取到 sha256: ${remote_path}"; return 1; }
 
     if [[ "${hash_remote}" == "${hash_local}" ]]; then
         echo "[OK] 校验通过 ${filename} sha256=${hash_remote}"
