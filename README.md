@@ -205,7 +205,7 @@ upload_file() {
     local hash_remote
 
     hash_local=$(sha256sum "${file}" | awk '{print $1}')
-    echo "[上传] ${file} (sha256=${hash_local})"
+    echo -e "local: ${file}\nsha256=${hash_local}"
 
     if ! ssh root@"${ip}" "cat > '${remote_path}'" < "${file}"; then
         echo "local -> remote: 传输失败: ${file}"
