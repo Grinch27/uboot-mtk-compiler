@@ -228,8 +228,10 @@ upload_file --file "./mt7981_ax3000t-fip-fixed-parts-multi-layout.bin"
 
 上传完成后，使用以下命令将 FIP 分区刷写：
 
+!!! 注意请先使用 `ssh root@192.168.31.1 'cat /proc/mtd'` 检查 FIP 分区名称大小写情况: 一般为 FIP 或 fip，请在命令中保持名称 FIP 或 fip 与对应实际一致 !!!
+
 ```bash
-# 刷写 FIP 分区，注意请先使用 ssh root@192.168.31.1 'cat /proc/mtd' 检查FIP分区名称大小写情况
+# 刷写 FIP 分区
 ssh root@192.168.31.1 "mtd erase FIP"
 ssh root@192.168.31.1 "mtd write /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layout.bin FIP"
 ssh root@192.168.31.1 "mtd verify /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layout.bin FIP"
