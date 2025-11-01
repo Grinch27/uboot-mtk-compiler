@@ -225,3 +225,23 @@ upload_file() {
 # 示例 将文件上传至设备 /tmp 目录，并校验
 upload_file --file "./mt7981_ax3000t-fip-fixed-parts-multi-layout.bin"
 ```
+
+上传完成后，使用以下命令将 FIP 分区刷写：
+
+```bash
+# 刷写 FIP 分区，注意请先使用 ssh root@192.168.31.1 'cat /proc/mtd' 检查FIP分区名称大小写情况
+ssh root@192.168.31.1 "mtd erase FIP"
+ssh root@192.168.31.1 "mtd write /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layout.bin FIP"
+ssh root@192.168.31.1 "mtd verify /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layout.bin FIP"
+
+# 清除pstore防止启动到恢复模式
+ssh root@192.168.31.1 "rm -f /sys/fs/pstore/*"
+```
+
+!!! 请认真确认成功刷写 FIP 分区后再进行下一步操作，避免刷入失败后重启导致设备无法启动 !!!
+
+完成后，重启设备并进入恢复模式，导入支持 hanwckf_uboot 的 OpenWrt 固件进行系统安装。
+
+```bash
+ssh root@192.168.31.1 "reboot"
+```
