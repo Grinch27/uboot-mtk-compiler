@@ -180,7 +180,6 @@ backup_mtd --ip 192.168.31.1
 upload_file() {
     local ip="192.168.31.1"
     local file=""
-
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -i|--ip)
@@ -188,17 +187,13 @@ upload_file() {
             -f|--file)
                 file="$2"; shift 2 ;;
             *)
-                echo "未识别的参数: $1" >&2; return 2 ;;
+                break ;;
         esac
     done
 
-    [[ -n "${file}" ]] || { echo "请使用 --file 指定要上传的文件"; return 2; }
-
+    [[ -f "${file}" ]] || { echo "[跳过] 未找到本地文件: ${file}"; return 1; }
+    local filename="$(basename "${file}")"
     local local_path="${file}"
-    [[ "${local_path}" == /* ]] || local_path="./${local_path}"
-    [[ -f "${local_path}" ]] || { echo "[跳过] 未找到本地文件: ${local_path}"; return 1; }
-
-    local filename="$(basename "${local_path}")"
     local remote_path="/tmp/${filename}"
     local hash_local
     local hash_remote
