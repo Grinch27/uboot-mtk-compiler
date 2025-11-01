@@ -254,6 +254,10 @@ ssh root@192.168.31.1 "reboot"
 
 #### 刷写 hanwckf_uboot 支持的 OpenWrt 系统固件(集成 `kmod-mtd-rw` 模块)
 
-此步骤较为简单，请自行参考 [hanwckf_uboot](https://github.com/hanwckf/bl-mt798x "bl-mt798x") 项目中的相关说明，完成过渡性 OpenWrt 系统固件(集成 `kmod-mtd-rw` 模块)的刷写。
+此步骤较为简单，请自行参考 [hanwckf_uboot](https://github.com/hanwckf/bl-mt798x "bl-mt798x") 项目中的相关说明，完成过渡性 OpenWrt 系统固件(集成 `kmod-mtd-rw` 模块)的刷写。例如：
+
+- [hanwckf/immortalwrt-mt798x](https://github.com/hanwckf/immortalwrt-mt798x "immortalwrt-mt798x")
+
+拉取该项目源码，编译时确保内核模块中包含 `kmod-mtd-rw` 模块，得到系统固件后，在恢复模式界面中进行刷写。
 
 #### 使用 kmod-mtd-rw 模块刷写 BL2 和 FIP 分区
