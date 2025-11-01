@@ -193,21 +193,21 @@ upload_file() {
 
     [[ -f "${file}" ]] || { echo "[跳过] 未找到本地文件: ${file}"; return 1; }
     local filename="$(basename "${file}")"
-    local local_path="${file}"
-    local remote_path="/tmp/${filename}"
+    local path_local="${file}"
+    local path_remote="/tmp/${filename}"
     local hash_local
     local hash_remote
 
-    hash_local=$(sha256sum "${local_path}" | awk '{print $1}')
-    echo "[上传] ${local_path} (sha256=${hash_local})"
+    hash_local=$(sha256sum "${path_local}" | awk '{print $1}')
+    echo "[上传] ${path_local} (sha256=${hash_local})"
 
-    if ! ssh root@"${ip}" "cat > '${remote_path}'" < "${local_path}"; then
-        echo "local -> remote: 传输失败: ${local_path}"
+    if ! ssh root@"${ip}" "cat > '${path_remote}'" < "${path_local}"; then
+        echo "local -> remote: 传输失败: ${path_local}"
         return 1
     fi
 
-    hash_remote=$(ssh root@"${ip}" "sha256sum '${remote_path}' 2>/dev/null" | awk '{print $1}')
-    [[ -n "${hash_remote}" ]] || { echo "remote: 未获取到 sha256: ${remote_path}"; return 1; }
+    hash_remote=$(ssh root@"${ip}" "sha256sum '${path_remote}' 2>/dev/null" | awk '{print $1}')
+    [[ -n "${hash_remote}" ]] || { echo "remote: 未获取到 sha256: ${path_remote}"; return 1; }
 
     if [[ "${hash_remote}" == "${hash_local}" ]]; then
         echo "[OK] 校验通过 ${filename} sha256=${hash_remote}"
