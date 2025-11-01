@@ -6,12 +6,12 @@ Github Actions for u-boot complie targets hanwckf/bl-mt798x.
 
 ## 从 hanwckf/bl-mt798x 过渡到 OpenWrt U-Boot layout
 
-以原版 Xiaomi AX3000T (MediaTek MT7981BA, MediaTek MT7976CN, MediaTek MT7531AE) 为例：
+以原版 Xiaomi AX3000T (`MediaTek MT7981BA`, `MediaTek MT7976CN`, `MediaTek MT7531AE`) 为例：
 
 原有的 u-boot 编译环境基于 hanwckf/bl-mt798x 项目。随着 OpenWrt 对 mt7981 和 mt7986 平台的支持日益完善，建议使用者迁移到 OpenWrt 的 u-boot，以获得更好的维护和更新支持。
 
-- [hanwckf_uboot](https://github.com/hanwckf/bl-mt798x "bl-mt798x"): 解锁 SSH -> 刷 FIP 分区
-- OpenWrt U-Boot layout：解锁 SSH -> 安装内核 kmod-mtd-rw 模块 -> 刷 BL2 和 FIP 分区
+- [hanwckf_uboot](https://github.com/hanwckf/bl-mt798x "bl-mt798x"): 解锁 SSH -> 刷 `FIP` 分区
+- OpenWrt U-Boot layout：解锁 SSH -> 安装内核 `kmod-mtd-rw` 模块 -> 刷 `BL2` 和 `FIP` 分区
 
 ### 0. 获取 SSH
 
@@ -56,15 +56,15 @@ if __name__ == '__main__':
 
 #### 在登录了原厂管理界面后，检查管理网页的网址
 
-复制存储网址中的 stok 的值，该值为临时值，例如
+复制存储网址中的 `stok` 的值，该值为临时值，例如
 
 http://192.168.31.1/cgi-bin/luci/;stok=1234567890abcdefg/web/home#router
 
-其中 1234567890abcdefg 就是本次 stok 的值。
+其中 `1234567890abcdefg` 就是本次 `stok` 的值。
 
 ### 使用 shell 脚本开启 dropbear SSH 服务
 
-将调用 enable_dropbear 后的 stok 值进行实际修改，运行后即可开启 dropbear SSH 服务。
+将调用 enable_dropbear 后的 `stok` 值进行实际修改，运行后即可开启 dropbear SSH 服务。
 
 ```bash
 enable_dropbear() {
@@ -165,13 +165,13 @@ backup_mtd --ip 192.168.31.1
 
 ### 2. 刷写 MTD 分区
 
-在实践中，hanwckf_uboot 刷写 FIP 分区即可用于后续系统固件的输入。
-但 OpenWrt U-Boot layout 需要刷写 BL2 和 FIP 分区，且往往需要安装 kmod-mtd-rw 模块以支持写入操作。
+在实践中，hanwckf_uboot 刷写 `FIP` 分区即可用于后续系统固件的输入。
+但 OpenWrt U-Boot layout 需要刷写 `BL2` 和 `FIP` 分区，且往往需要安装 `kmod-mtd-rw` 模块以支持写入操作。
 因而，推荐的操作顺序是：
 
-- 将 hanwckf_uboot 刷写至 FIP 分区。
-- 完成后重启设备并进入恢复模式，导入 hanwckf_uboot 支持的 OpenWrt 固件(集成 kmod-mtd-rw 模块)进行系统安装。
-- 成功安装(集成 kmod-mtd-rw 模块)的 OpenWrt 系统后，登录设备，使用 kmod-mtd-rw 模块将 OpenWrt U-Boot layout 刷写 BL2 和 FIP 分区。
+- 将 hanwckf_uboot 刷写至 `FIP` 分区。
+- 完成后重启设备并进入恢复模式，导入 hanwckf_uboot 支持的 OpenWrt 固件(集成 `kmod-mtd-rw` 模块)进行系统安装。
+- 成功安装(集成 `kmod-mtd-rw` 模块)的 OpenWrt 系统后，登录设备，使用 `kmod-mtd-rw` 模块将 OpenWrt U-Boot layout 刷写 `BL2` 和 `FIP` 分区。
 - 完成后重启设备并进入恢复模式，导入 OpenWrt 固件进行系统安装。
 
 #### 将 hanwckf_uboot 刷写至 FIP 分区
@@ -228,21 +228,25 @@ upload_file --file "./mt7981_ax3000t-fip-fixed-parts-multi-layout.bin"
 
 上传完成后，使用以下命令将 FIP 分区刷写：
 
-!!! 注意请先使用 `ssh root@192.168.31.1 'cat /proc/mtd'` 检查 FIP 分区名称大小写情况: 一般为 FIP 或 fip，请在命令中保持名称 FIP 或 fip 与对应实际一致 !!!
+!!! 注意请先使用 `ssh root@192.168.31.1 'cat /proc/mtd'` 检查 `FIP` 分区名称大小写情况: 一般为 `FIP` 或 `fip`，请在命令中保持名称 `FIP` 或 `fip` 与对应实际一致 !!!
 
 ```bash
 # 刷写 FIP 分区
 ssh root@192.168.31.1 "mtd erase FIP"
 ssh root@192.168.31.1 "mtd write /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layout.bin FIP"
 ssh root@192.168.31.1 "mtd verify /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layout.bin FIP"
+```
 
+清除 pstore 这步可跳过
+
+```bash
 # 清除pstore防止启动到恢复模式
 ssh root@192.168.31.1 "rm -f /sys/fs/pstore/*"
 ```
 
 !!! 请认真确认成功刷写 FIP 分区后再进行下一步操作，避免刷入失败后重启导致设备无法启动 !!!
 
-完成后，重启设备并进入恢复模式，导入支持 hanwckf_uboot 的 OpenWrt 固件进行系统安装。
+完成后，`reboot`重启设备并进入恢复模式，导入支持 hanwckf_uboot 的 OpenWrt 固件进行系统安装。
 
 ```bash
 ssh root@192.168.31.1 "reboot"
