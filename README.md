@@ -237,7 +237,7 @@ ssh root@192.168.31.1 "mtd write /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layou
 ssh root@192.168.31.1 "mtd verify /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layout.bin FIP"
 ```
 
-清除 pstore 这步可跳过
+此步骤可跳过：清除 pstore
 
 ```bash
 # 清除pstore防止启动到恢复模式
