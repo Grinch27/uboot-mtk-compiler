@@ -202,18 +202,17 @@ upload_file() {
     echo "[上传] ${local_path} (sha256=${hash_local})"
 
     if ! ssh root@"${ip}" "cat > '${remote_path}'" < "${local_path}"; then
-        echo "[错误] 传输失败: ${local_path}"
+        echo "local -> remote: 传输失败: ${local_path}"
         return 1
     fi
 
     hash_remote=$(ssh root@"${ip}" "sha256sum '${remote_path}' 2>/dev/null" | awk '{print $1}')
-    [[ -n "${hash_remote}" ]] || { echo "[错误] 远端未获取到 sha256: ${remote_path}"; return 1; }
+    [[ -n "${hash_remote}" ]] || { echo "remote: 未获取到 sha256: ${remote_path}"; return 1; }
 
     if [[ "${hash_remote}" == "${hash_local}" ]]; then
         echo "[OK] 校验通过 ${filename} sha256=${hash_remote}"
     else
         echo "[不匹配] ${filename} 本地=${hash_local} 远端=${hash_remote}"
-        echo "        请重新执行：ssh root@${ip} \"cat > '${remote_path}'\" < '${local_path}'"
         return 1
     fi
 }
