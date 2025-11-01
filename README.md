@@ -153,7 +153,7 @@ backup_mtd() {
     for mtd in "${!MTDS[@]}"; do
         filename="${MTDS[$mtd]}"
         echo "Backup ${ip}: ${mtd} -> ${filename}"
-        hash_remote=$(ssh root@"$ip" "busybox sha256sum ${mtd}" | awk '{print $1}')
+        hash_remote=$(ssh root@"$ip" "sha256sum ${mtd}" | awk '{print $1}')
         ssh root@"$ip" "dd if=${mtd} bs=4M status=none" | dd of="./${filename}" bs=4M status=progress
         hash_local=$(sha256sum "./${filename}" | awk '{print $1}')
         [[ "$hash_remote" == "$hash_local" ]] || { echo "校验失败: ${mtd}"; return 1; }
