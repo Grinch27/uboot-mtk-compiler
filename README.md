@@ -193,16 +193,15 @@ upload_file() {
 
     [[ -f "${file}" ]] || { echo "[跳过] 未找到本地文件: ${file}"; return 1; }
     local filename="$(basename "${file}")"
-    local path_local="${file}"
     local path_remote="/tmp/${filename}"
     local hash_local
     local hash_remote
 
-    hash_local=$(sha256sum "${path_local}" | awk '{print $1}')
-    echo "[上传] ${path_local} (sha256=${hash_local})"
+    hash_local=$(sha256sum "${file}" | awk '{print $1}')
+    echo "[上传] ${file} (sha256=${hash_local})"
 
-    if ! ssh root@"${ip}" "cat > '${path_remote}'" < "${path_local}"; then
-        echo "local -> remote: 传输失败: ${path_local}"
+    if ! ssh root@"${ip}" "cat > '${path_remote}'" < "${file}"; then
+        echo "local -> remote: 传输失败: ${file}"
         return 1
     fi
 
