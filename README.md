@@ -251,3 +251,9 @@ ssh root@192.168.31.1 "rm -f /sys/fs/pstore/*"
 ```bash
 ssh root@192.168.31.1 "reboot"
 ```
+
+#### 刷写 hanwckf_uboot 支持的 OpenWrt 系统固件
+
+此步骤较为简单，请自行参考 hanwckf/bl-mt798x 项目中的相关说明，完成系统固件的刷写。
+
+#### 使用 kmod-mtd-rw 模块刷写 BL2 和 FIP 分区
