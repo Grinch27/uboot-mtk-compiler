@@ -260,4 +260,9 @@ ssh root@192.168.31.1 "reboot"
 
 拉取该项目源码，编译时确保`.config`文件内核模块中包含 `kmod-mtd-rw` 模块，编译得到系统固件后，在恢复模式界面中进行刷写。
 
+注意：请使用当前 `hanwckf_uboot` 支持的分区布局的 OpenWrt 固件进行刷写，例如使用[hanwckf/immortalwrt-mt798x](https://github.com/hanwckf/immortalwrt-mt798x "immortalwrt-mt798x")进行编译的：
+
+- https://github.com/Grinch27/openwrt-compiler/releases/tag/openwrt-21.02%2B5.4.284%2Bimmortalwrt-mt798x_7981
+- https://github.com/Grinch27/openwrt-compiler/releases/tag/openwrt-21.02%2B5.4.284%2Bimmortalwrt-mt798x_7986
+
 #### 使用 kmod-mtd-rw 模块刷写 BL2 和 FIP 分区
