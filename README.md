@@ -264,7 +264,7 @@ ssh root@192.168.31.1 "reboot"
 - https://github.com/Grinch27/openwrt-compiler/releases/tag/openwrt-21.02%2B5.4.284%2Bimmortalwrt-mt798x_7981
 - https://github.com/Grinch27/openwrt-compiler/releases/tag/openwrt-21.02%2B5.4.284%2Bimmortalwrt-mt798x_7986
 
-#### 使用 kmod-mtd-rw 模块刷写 BL2 和 FIP 分区
+#### 使用 kmod-mtd-rw 模块刷写适配 ubootmod 的 BL2 和 FIP 分区（OpenWrt U-Boot layout）
 
 默认情况下，OpenWrt 系统并不支持直接写入 MTD 分区，需要安装 `kmod-mtd-rw` 模块以启用该功能。该模块一般不支持热插拔安装，建议在编译 OpenWrt 固件时将其集成进去。
 
@@ -323,3 +323,33 @@ upload_file() {
 upload_file --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-preloader.bin"
 upload_file --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-bl31-uboot.fip"
 ```
+
+上传完成后，使用以下命令将 BL2 和 FIP 分区刷写，根据实际 cat /proc/mtd 显示的 BL2 和 FIP 实际名称进行调整（注意大小写）：
+
+```bash
+# 清理旧ssh密钥
+ssh-keygen -R 192.168.1.1
+
+# 查看分区情况
+ssh root@192.168.1.1 "cat /proc/mtd"
+
+# 加载 mtd-rw 模块以启用写入功能
+ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
+
+# 注意，请根据实际 cat /proc/mtd 显示的BL2和FIP实际名称进行调整（注意大小写）
+
+# 刷写 BL2 分区
+ssh root@192.168.1.1 "mtd erase BL2"
+ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-preloader.bin BL2"
+ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-preloader.bin BL2"
+
+# 刷写 FIP 分区
+ssh root@192.168.1.1 "mtd erase FIP"
+ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-bl31-uboot.fip FIP"
+ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-bl31-uboot.fip FIP"
+
+# 清除pstore防止启动到恢复模式（此步命令可跳过）
+rm -f /sys/fs/pstore/*
+```
+
+到此为止，适配 ubootmod 的 BL2 和 FIP 分区（OpenWrt U-Boot layout）已刷写完成。可进入恢复模式，导入适配 ubootmod 的 OpenWrt 固件进行系统安装。
