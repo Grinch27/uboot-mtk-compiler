@@ -353,3 +353,47 @@ rm -f /sys/fs/pstore/*
 ```
 
 到此为止，适配 ubootmod 的 BL2 和 FIP 分区（OpenWrt U-Boot layout）已刷写完成。可进入恢复模式，导入适配 ubootmod 的 OpenWrt 固件进行系统安装。
+
+#### 设备进入恢复模式，主机启用 tftp 服务，实现将`initramfs-recovery.itb`固件传输至设备
+
+安装并启用 tftp 服务
+
+```bash
+# 更新软件包列表，安装tftpd-hpa服务器
+sudo apt update
+sudo apt install -y tftpd-hpa
+
+# 创建TFTP目录
+sudo mkdir -p /srv/tftp
+sudo chmod 777 /srv/tftp
+# 编辑TFTP配置文件
+sudo vi /etc/default/tftpd-hpa
+# 将配置文件内容修改为：
+TFTP_USERNAME="tftp"
+TFTP_DIRECTORY="/srv/tftp"
+TFTP_ADDRESS=":69"
+TFTP_OPTIONS="--secure"
+# 重启TFTP服务
+sudo systemctl restart tftpd-hpa
+# 确认服务运行状态
+sudo systemctl status tftpd-hpa
+```
+
+将适配 ubootmod 的 OpenWrt 固件（例如 `openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-initramfs-recovery.itb`）复制到 `/srv/tftp` 目录下：
+
+此处文件名请根据 ubootmod 的 env 环境变量进行对应放置。
+
+并将主机 IP 地址设置为`192.168.1.254`：
+
+重启设备并根据设备对应的恢复处理方式进入恢复模式，稍等片刻后，tftp 服务端会显示文件传输日志，表示设备已成功从 tftp 服务器获取到固件文件。或者可根据主机网络流量监控确认文件传输情况。
+
+等待设备完成固件写入后，设备自动，完成系统安装。并清理相关临时工具。
+
+```bash
+# 停止当前运行的tftpd-hpa服务
+sudo systemctl stop tftpd-hpa
+# 禁用服务开机自启动
+sudo systemctl disable tftpd-hpa
+# 确认服务已停止并禁用
+sudo systemctl status tftpd-hpa
+```
