@@ -13,7 +13,8 @@ Github Actions for u-boot complie targets hanwckf/bl-mt798x.
 - [hanwckf_uboot](https://github.com/hanwckf/bl-mt798x "bl-mt798x"): 解锁 SSH -> 刷 `FIP` 分区
 - OpenWrt U-Boot layout：解锁 SSH -> 安装内核 `kmod-mtd-rw` 模块 -> 刷 `BL2` 和 `FIP` 分区
 
-### 0. 获取 SSH
+<details>
+<summary><strong>0. 获取 SSH</strong></summary>
 
 #### 从互联网途径获取到的 AX3000T root 初始密码计算代码
 
@@ -104,7 +105,10 @@ ssh-keygen -R 192.168.31.1
 ssh root@192.168.31.1
 ```
 
-### 1. 备份
+</details>
+
+<details>
+<summary><strong>1. 备份</strong></summary>
 
 在进行任何修改之前，建议先备份设备的现有固件和配置，以防止意外情况发生。
 
@@ -162,7 +166,10 @@ backup_mtd() {
 backup_mtd --ip 192.168.31.1
 ```
 
-### 2. 刷写 MTD 分区
+</details>
+
+<details>
+<summary><strong>2. 刷写 MTD 分区</strong></summary>
 
 在实践中，hanwckf_uboot 刷写 `FIP` 分区即可用于后续系统固件的输入。
 但 OpenWrt U-Boot layout 需要刷写 `BL2` 和 `FIP` 分区，且往往需要安装 `kmod-mtd-rw` 模块以支持写入操作。
@@ -354,7 +361,9 @@ rm -f /sys/fs/pstore/*
 
 到此为止，适配 ubootmod 的 BL2 和 FIP 分区（OpenWrt U-Boot layout）已刷写完成。可进入恢复模式，导入适配 ubootmod 的 OpenWrt 固件进行系统安装。
 
-#### 设备进入恢复模式，主机启用 tftp 服务，实现将`initramfs-recovery.itb`固件传输至设备
+### 3. 刷入 OpenWrt 系统固件
+
+设备进入恢复模式，主机启用 tftp 服务，实现将`initramfs-recovery.itb`固件传输至设备
 
 安装并启用 tftp 服务
 
