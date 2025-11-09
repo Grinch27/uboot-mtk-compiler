@@ -29,15 +29,6 @@ salt = {
 }
 
 
-def main():
-    try:
-        sn = sys.argv[1]
-    except IndexError:
-        sn = input('请输入SN码: ')
-
-    print(get_pass(sn))
-
-
 def get_pass(sn: str):
     # SN码加盐后进行md5加密取前八位字符串返回
     return hashlib.md5((sn + get_salt(sn)).encode()).hexdigest()[:8]
@@ -48,6 +39,14 @@ def get_salt(sn):
     if '/' in sn:
         return salt['others'].lower()
     return salt['r1d']
+
+
+def main():
+    try:
+        sn = sys.argv[1]
+    except IndexError:
+        sn = input('请输入SN码: ')
+    print(get_pass(sn))
 
 
 if __name__ == '__main__':
