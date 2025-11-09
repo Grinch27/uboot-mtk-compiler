@@ -265,3 +265,18 @@ ssh root@192.168.31.1 "reboot"
 - https://github.com/Grinch27/openwrt-compiler/releases/tag/openwrt-21.02%2B5.4.284%2Bimmortalwrt-mt798x_7986
 
 #### 使用 kmod-mtd-rw 模块刷写 BL2 和 FIP 分区
+
+默认情况下，OpenWrt 系统并不支持直接写入 MTD 分区，需要安装 `kmod-mtd-rw` 模块以启用该功能。该模块一般不支持热插拔安装，建议在编译 OpenWrt 固件时将其集成进去。
+
+首先，确保已经从 OpenWrt 项目编译并获取到所需的 u-boot 固件文件，例如：
+
+- openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-preloader.bin
+- openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-bl31-uboot.fip
+
+其中， `preloader.bin` 对应 BL2 分区， `bl31-uboot.fip` 对应 FIP 分区。
+
+将上述文件上传至设备的 `/tmp` 目录下，以下提供一个上传文件并校验的示例脚本：
+
+```bash
+
+```
