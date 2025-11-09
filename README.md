@@ -61,7 +61,7 @@ http://192.168.31.1/cgi-bin/luci/;stok=1234567890abcdefg/web/home#router
 
 其中 `1234567890abcdefg` 就是本次 `stok` 的值。
 
-### 使用 shell 脚本开启 dropbear SSH 服务
+#### 使用 shell 脚本开启 dropbear SSH 服务
 
 将调用 enable_dropbear 后的 `stok` 值进行实际修改，运行后即可开启 dropbear SSH 服务。
 
