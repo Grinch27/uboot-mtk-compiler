@@ -340,6 +340,17 @@ ssh-keygen -R 192.168.1.1
 # 查看分区情况
 ssh root@192.168.1.1 "cat /proc/mtd"
 
+# dev:    size   erasesize  name
+# mtd0: 00100000 00020000 "BL2"
+# mtd1: 00040000 00020000 "Nvram"
+# mtd2: 00040000 00020000 "Bdata"
+# mtd3: 00200000 00020000 "Factory"
+# mtd4: 00200000 00020000 "FIP"
+# mtd5: 00040000 00020000 "crash"
+# mtd6: 00040000 00020000 "crash_log"
+# mtd7: 00040000 00020000 "KF"
+# mtd8: 07000000 00020000 "ubi"
+
 # 加载 mtd-rw 模块以启用写入功能
 ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
 
@@ -357,6 +368,8 @@ ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-xiaomi_mi-router-
 
 # 清除pstore防止启动到恢复模式（此步命令可跳过）
 rm -f /sys/fs/pstore/*
+
+ssh root@192.168.1.1 "reboot"
 ```
 
 到此为止，适配 ubootmod 的 BL2 和 FIP 分区（OpenWrt U-Boot layout）已刷写完成。可进入恢复模式，导入适配 ubootmod 的 OpenWrt 固件进行系统安装。
