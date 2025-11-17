@@ -657,7 +657,7 @@ TFTP_ADDRESS=":69"
 TFTP_OPTIONS="--secure"
 ```
 
-将适配 ubootmod 的 OpenWrt 固件（例如 `openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-initramfs-recovery.itb`）复制到 `/srv/tftp` 目录下：
+将适配 ubootmod 的 OpenWrt 固件（例如 `openwrt-mediatek-filogic-nokia_ea0326gmp-initramfs-recovery.itb`）复制到 `/srv/tftp` 目录下：
 
 此处文件名请根据 ubootmod 的 env 环境变量进行对应放置。
 
