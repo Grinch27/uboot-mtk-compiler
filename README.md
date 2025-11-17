@@ -11,7 +11,7 @@ Github Actions for u-boot complie targets hanwckf/bl-mt798x.
 - [hanwckf_uboot](https://github.com/hanwckf/bl-mt798x "bl-mt798x"): 解锁 SSH -> 刷 `FIP` 分区
 - OpenWrt U-Boot layout：解锁 SSH -> 安装内核 `kmod-mtd-rw` 模块 -> 刷 `BL2` 和 `FIP` 分区
 
-## 以原版 Xiaomi AX3000T 为例：
+## 原 Xiaomi AX3000T
 
 原版 Xiaomi AX3000T (`MediaTek MT7981BA`, `MediaTek MT7976CN`, `MediaTek MT7531AE`)
 
@@ -380,6 +380,260 @@ ssh root@192.168.1.1 "reboot"
 
 <details>
 <summary><strong>3. 刷入 OpenWrt 系统固件</strong></summary>
+
+设备进入恢复模式，主机启用 tftp 服务，实现将`initramfs-recovery.itb`固件传输至设备
+
+安装并启用 tftp 服务
+
+```bash
+# 更新软件包列表，安装tftpd-hpa服务器
+sudo apt update
+sudo apt install -y tftpd-hpa
+
+# 创建TFTP目录
+sudo mkdir -p /srv/tftp
+sudo chmod 777 /srv/tftp
+
+# 编辑TFTP配置文件
+sudo vi /etc/default/tftpd-hpa
+# 将配置文件内容修改为：
+TFTP_USERNAME="tftp"
+TFTP_DIRECTORY="/srv/tftp"
+TFTP_ADDRESS=":69"
+TFTP_OPTIONS="--secure"
+```
+
+将适配 ubootmod 的 OpenWrt 固件（例如 `openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-initramfs-recovery.itb`）复制到 `/srv/tftp` 目录下：
+
+此处文件名请根据 ubootmod 的 env 环境变量进行对应放置。
+
+并将主机 IP 地址设置为`192.168.1.254`，重启 tftp 服务：
+
+```bash
+# 重启TFTP服务
+sudo systemctl restart tftpd-hpa
+# 确认服务运行状态
+sudo systemctl status tftpd-hpa
+```
+
+重启设备并根据设备对应的恢复处理方式进入恢复模式，稍等片刻后，tftp 服务端会显示文件传输日志，表示设备已成功从 tftp 服务器获取到固件文件。或者可根据主机网络流量监控确认文件传输情况。
+
+等待设备完成固件写入后，设备自动，完成系统安装。并清理相关临时工具。
+
+```bash
+# 停止当前运行的tftpd-hpa服务
+sudo systemctl stop tftpd-hpa
+# 禁用服务开机自启动
+sudo systemctl disable tftpd-hpa
+# 确认服务已停止并禁用
+sudo systemctl status tftpd-hpa
+```
+
+</details>
+
+## 以 mt7981_nokia_ea0326gmp 为例(简易教程)
+
+前提：默认用户已经实现 SSH 登录。可复用的代码请参考前篇 AX3000T。
+
+<details>
+<summary><strong>1. 备份</strong></summary>
+
+在进行任何修改之前，建议先备份设备的现有固件和配置，以防止意外情况发生。
+
+#### 查看设备 MTD 分区信息
+
+如非特殊说明，以下命令均在主机的 shell 终端中执行。
+
+```bash
+# 查看分区情况
+ssh root@192.168.10.1 'cat /proc/mtd'
+
+# 备份所有分区到 /tmp 目录
+# 注意，请根据实际的 mtd 分区数量调整以下命令
+
+# 示例：根据实际情况修改 ip
+backup_mtd --ip 192.168.10.1
+```
+
+</details>
+
+<details>
+<summary><strong>2. 刷写 MTD 分区（hanwckf_uboot）</strong></summary>
+
+简单略过重复说明。
+
+#### 将 hanwckf_uboot 刷写至 FIP 分区
+
+简单略过重复说明。
+
+```bash
+upload_file() {
+    local ip="192.168.31.1"
+    local file=""
+    local remote_dir="/tmp"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--ip)
+                ip="$2"; shift 2 ;;
+            -f|--file)
+                file="$2"; shift 2 ;;
+            -r|--remote_dir)
+                remote_dir="$2"; shift 2 ;;
+            *)
+                break ;;
+        esac
+    done
+
+    [[ -f "${file}" ]] || { echo "[跳过] 未找到本地文件: ${file}"; return 1; }
+    local filename="$(basename "${file}")"
+    local remote_path="${remote_dir%/}/${filename}"
+    local hash_local
+    local hash_remote
+
+    hash_local=$(sha256sum "${file}" | awk '{print $1}')
+    echo -e "local: ${file}\nsha256=${hash_local}"
+
+    if ! ssh root@"${ip}" "cat > '${remote_path}'" < "${file}"; then
+        echo "local -> remote: 传输失败: ${file}"
+        return 1
+    fi
+
+    hash_remote=$(ssh root@"${ip}" "sha256sum '${remote_path}' 2>/dev/null" | awk '{print $1}')
+    [[ -n "${hash_remote}" ]] || { echo "remote: 未获取到 sha256: ${remote_path}"; return 1; }
+
+    if [[ "${hash_remote}" == "${hash_local}" ]]; then
+        echo "[OK] 校验通过 ${filename} sha256=${hash_remote}"
+    else
+        echo "[不匹配] ${filename} 本地=${hash_local} 远端=${hash_remote}"
+        return 1
+    fi
+}
+# 示例 将文件上传至设备 /tmp 目录，并校验
+upload_file --file "./mt7981_nokia_ea0326gmp-fip-fixed-parts.bin"
+```
+
+上传完成后，使用以下命令将 FIP 分区刷写：
+
+!!! 注意请先使用 `ssh root@192.168.10.1 'cat /proc/mtd'` 检查 `FIP` 分区名称大小写情况: 一般为 `FIP` 或 `fip`，请在命令中保持名称 `FIP` 或 `fip` 与对应实际一致 !!!
+
+```bash
+# 刷写 FIP 分区
+ssh root@192.168.10.1 "mtd erase FIP"
+ssh root@192.168.10.1 "mtd write /tmp/mt7981_nokia_ea0326gmp-fip-fixed-parts.bin FIP"
+ssh root@192.168.10.1 "mtd verify /tmp/mt7981_nokia_ea0326gmp-fip-fixed-parts.bin FIP"
+```
+
+此步骤可跳过：清除 pstore
+
+```bash
+# 清除pstore防止启动到恢复模式
+ssh root@192.168.10.1 "rm -f /sys/fs/pstore/*"
+```
+
+!!! 请认真确认成功刷写 FIP 分区后再进行下一步操作，避免刷入失败后重启导致设备无法启动 !!!
+
+完成后，`reboot`重启设备并进入恢复模式，导入支持 hanwckf_uboot 的 OpenWrt 固件进行系统安装。
+
+```bash
+ssh root@192.168.10.1 "reboot"
+```
+
+#### 刷写 hanwckf_uboot 支持的 OpenWrt 系统固件(集成 `kmod-mtd-rw` 模块)
+
+简单略过重复说明。
+
+</details>
+
+<details>
+<summary><strong>3. 刷写 MTD 分区（OpenWrt U-Boot layout）</strong></summary>
+
+#### 使用 kmod-mtd-rw 模块刷写适配 ubootmod 的 BL2 和 FIP 分区（OpenWrt U-Boot layout）
+
+简单略过重复说明。
+
+```bash
+upload_file() {
+    local ip="192.168.31.1"
+    local file=""
+    local remote_dir="/tmp"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--ip)
+                ip="$2"; shift 2 ;;
+            -f|--file)
+                file="$2"; shift 2 ;;
+            -r|--remote_dir)
+                remote_dir="$2"; shift 2 ;;
+            *)
+                break ;;
+        esac
+    done
+
+    [[ -f "${file}" ]] || { echo "[跳过] 未找到本地文件: ${file}"; return 1; }
+    local filename="$(basename "${file}")"
+    local remote_path="${remote_dir%/}/${filename}"
+    local hash_local
+    local hash_remote
+
+    hash_local=$(sha256sum "${file}" | awk '{print $1}')
+    echo -e "local: ${file}\nsha256=${hash_local}"
+
+    if ! ssh root@"${ip}" "cat > '${remote_path}'" < "${file}"; then
+        echo "local -> remote: 传输失败: ${file}"
+        return 1
+    fi
+
+    hash_remote=$(ssh root@"${ip}" "sha256sum '${remote_path}' 2>/dev/null" | awk '{print $1}')
+    [[ -n "${hash_remote}" ]] || { echo "remote: 未获取到 sha256: ${remote_path}"; return 1; }
+
+    if [[ "${hash_remote}" == "${hash_local}" ]]; then
+        echo "[OK] 校验通过 ${filename} sha256=${hash_remote}"
+    else
+        echo "[不匹配] ${filename} 本地=${hash_local} 远端=${hash_remote}"
+        return 1
+    fi
+}
+# 示例 将文件上传至设备 /tmp 目录，并校验
+upload_file --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin"
+upload_file --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip"
+```
+
+上传完成后，使用以下命令将 BL2 和 FIP 分区刷写，根据实际 cat /proc/mtd 显示的 BL2 和 FIP 实际名称进行调整（注意大小写）：
+
+```bash
+# 清理旧ssh密钥
+ssh-keygen -R 192.168.1.1
+
+# 查看分区情况
+ssh root@192.168.1.1 "cat /proc/mtd"
+
+# 加载 mtd-rw 模块以启用写入功能
+ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
+
+# 注意，请根据实际 cat /proc/mtd 显示的BL2和FIP实际名称进行调整（注意大小写）
+
+# 刷写 BL2 分区
+ssh root@192.168.1.1 "mtd erase BL2"
+ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin BL2"
+ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin BL2"
+
+# 刷写 FIP 分区
+ssh root@192.168.1.1 "mtd erase FIP"
+ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip FIP"
+ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip FIP"
+
+# 清除pstore防止启动到恢复模式（此步命令可跳过）
+rm -f /sys/fs/pstore/*
+
+ssh root@192.168.1.1 "reboot"
+```
+
+简单略过重复说明。
+
+</details>
+
+<details>
+<summary><strong>4. 刷入 OpenWrt 系统固件</strong></summary>
 
 设备进入恢复模式，主机启用 tftp 服务，实现将`initramfs-recovery.itb`固件传输至设备
 
