@@ -1,4 +1,4 @@
-name: Build U-Boot
+name: (Docker) Build U-Boot
 
 permissions:
   contents: write
@@ -61,7 +61,7 @@ on:
         description: "Runner Image"
         type: string
         required: false
-        default: "ubuntu-latest"
+        default: "ubuntu-slim"
   workflow_call:
     inputs:
       device_branch:
@@ -86,7 +86,7 @@ env:
 jobs:
   build:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
-    runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
+    runs-on: ${{ inputs.runner_image || 'ubuntu-slim' }}
     container:
       image: ubuntu:devel
     env:
