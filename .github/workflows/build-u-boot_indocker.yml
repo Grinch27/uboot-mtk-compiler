@@ -204,11 +204,11 @@ jobs:
           echo -e "Current working directory: $(pwd)"
 
           echo "gcc_aarch64=true" | tee -a $GITHUB_ENV
-
           echo "gcc_cross: ${{ env.gcc_aarch64 }}"
 
       - name: (Env) Environment for OpenWrt
         id: env-toolchain
+        if: ${{ steps.var.outputs.in_container != 'true' }}
         uses: Grinch27/github-actions/.github/actions/env-toolchain@main
         with:
           # ----- gcc -----
