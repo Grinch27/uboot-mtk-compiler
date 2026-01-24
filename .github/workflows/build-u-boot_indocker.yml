@@ -242,6 +242,15 @@ jobs:
           root_num: 4
           mnt_num: 1
 
+      - name: (Disk) disk workspace
+        id: disk-fix
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          sudo mkdir -p "${path_build}"
+          sudo chown -R $(whoami):$(whoami) "${path_build}"
+
       - name: Clone Target Repository
         id: clonesys
         # if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
