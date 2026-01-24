@@ -89,6 +89,9 @@ jobs:
     runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
     container:
       image: ubuntu:devel
+    defaults:
+      run:
+        shell: bash
     env:
       app_branch: "uboot"
       DEBIAN_FRONTEND: noninteractive
