@@ -303,7 +303,7 @@ jobs:
           echo -e "Current working directory: $(pwd)"
           # fix sudo in docker
           apt-get update
-          apt-get install -y gcc-aarch64-linux-gnu python
+          apt-get install -y gcc-aarch64-linux-gnu python3
 
       - name: Compile U-Boot Cycle
         id: compile
