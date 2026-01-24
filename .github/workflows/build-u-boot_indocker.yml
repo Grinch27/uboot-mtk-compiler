@@ -111,7 +111,7 @@ jobs:
       gcc_purge: true
       gcc_install: true
       gcc_switch: true
-      gcc_version: 14
+      gcc_version: 15
       # ----- clang -----
       clang_purge: true
       # clang_install: true
@@ -131,6 +131,13 @@ jobs:
         working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
+
+          # ========== IN DOCKER ==========
+          if [ -f /.dockerenv ]; then
+            echo "in_container=true" | tee -a ${GITHUB_OUTPUT}
+          else
+            echo "in_container=false" | tee -a ${GITHUB_OUTPUT}
+          fi
 
           # ========== Set repo branch ==========
           repo_target="https://github.com/hanwckf/bl-mt798x"
@@ -167,7 +174,7 @@ jobs:
             echo "${var}=${!var}" | tee -a $GITHUB_ENV
           done
 
-          echo "status=success" >> ${GITHUB_OUTPUT}
+          echo "status=success" | tee -a ${GITHUB_OUTPUT}
 
       - name: Load Custom Environment Variables
         id: env-custom
@@ -228,6 +235,7 @@ jobs:
 
       - name: (Disk) disk workspace
         id: disk
+        if: ${{ steps.var.outputs.in_container != 'true' }}
         uses: Grinch27/github-actions/.github/actions/setup-disk@main
         with:
           path_build: ${{ env.path_build }}
@@ -236,7 +244,7 @@ jobs:
 
       - name: Clone Target Repository
         id: clonesys
-        if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
+        # if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
         working-directory: ${{ env.path_build }}
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -281,7 +289,7 @@ jobs:
 
       - name: Compile U-Boot Cycle
         id: compile
-        if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
+        # if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
         env:
           device: ${{ env.device_branch }}
         working-directory: ${{ env.path_build }}
@@ -482,7 +490,7 @@ jobs:
       - name: Upload OpenWrt to Release
         id: release
         uses: ncipollo/release-action@main
-        if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
+        # if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         env:
           timestamp: ${{ steps.output.outputs.timestamp }}
           target_ext: "tar"
