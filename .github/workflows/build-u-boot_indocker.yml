@@ -296,6 +296,15 @@ jobs:
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
+      - name: (Fix) Complie
+        id: fix-complie
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          # fix sudo in docker
+          apt-get update
+          apt-get install -y aarch64-linux-gnu-gcc
+
       - name: Compile U-Boot Cycle
         id: compile
         # if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
