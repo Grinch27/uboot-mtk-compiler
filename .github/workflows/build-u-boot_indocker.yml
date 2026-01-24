@@ -178,6 +178,13 @@ jobs:
         run: |
           echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
 
+      - name: (Apt) Docker Needed for Actions
+        id: apt-actions
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          apt install sudo
+
       - name: (Apt) install packages - OpenWrt
         id: apt-openwrt
         uses: Grinch27/github-actions/.github/actions/apt-openwrt@main
