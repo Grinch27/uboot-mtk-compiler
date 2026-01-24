@@ -182,8 +182,9 @@ jobs:
         id: apt-actions
         run: |
           echo -e "Current working directory: $(pwd)"
-
-          apt install sudo
+          # fix sudo in docker
+          apt-get update
+          apt-get install -y sudo
 
       - name: (Apt) install packages - OpenWrt
         id: apt-openwrt
