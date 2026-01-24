@@ -1,5 +1,8 @@
 name: Build U-Boot
 
+permissions:
+  contents: write
+
 on:
   repository_dispatch:
   workflow_dispatch:
@@ -84,6 +87,8 @@ jobs:
   build:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
     runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
+    container:
+      image: grinch27/openwrt_builder:latest
     env:
       app_branch: "uboot"
       DEBIAN_FRONTEND: noninteractive
