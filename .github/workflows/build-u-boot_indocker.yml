@@ -61,7 +61,7 @@ on:
         description: "Runner Image"
         type: string
         required: false
-        default: "ubuntu-latest"
+        default: "ubuntu-slim"
   workflow_call:
     inputs:
       device_branch:
@@ -84,8 +84,20 @@ env:
   custom_env: ${{ inputs.custom_env || '' }}
 
 jobs:
+  setup-host:
+    name: Setup on Host
+    runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: (Setup) Docker
+        id: setup-docker
+        uses: Grinch27/github-actions/.github/actions/setup-docker@main
+
   build:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
+    needs: setup-host
     runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
     container:
       image: ubuntu:devel
