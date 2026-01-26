@@ -443,7 +443,7 @@ jobs:
         id: output
         # if: ${{ 'true' == 'false' }} # disable
         env:
-          metadata_sum_path: "${{ github.workspace }}/metadata_sum.json"
+          metadata_sum_path: "${{ env.GITHUB_WORKSPACE }}/metadata_sum.json"
           category: "files"
           target_ext: "bin"
         working-directory: ${{ env.path_output }}
