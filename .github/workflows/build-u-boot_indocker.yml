@@ -188,26 +188,14 @@ jobs:
           echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
 
       - name: (Apt) Docker Needed for Actions
-        id: apt-actions
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          # fix sudo in docker
-          apt-get update
-          apt-get install -y sudo systemctl
+        id: fix-docker
+        uses: Grinch27/github-actions/.github/actions/fix-indocker@main
 
       - name: (Apt) install packages - OpenWrt
         id: apt-openwrt
         uses: Grinch27/github-actions/.github/actions/apt-openwrt@main
 
       # ========== General Environment Setup: Start ==========
-      - name: (Env) GCC Cross-Compiler
-        id: env-gcc_cross
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          echo "gcc_aarch64=true" | tee -a $GITHUB_ENV
-          echo "gcc_cross: ${{ env.gcc_aarch64 }}"
-
       - name: (Env) Environment for OpenWrt
         id: env-toolchain
         # if: ${{ steps.var.outputs.in_container != 'true' }}
