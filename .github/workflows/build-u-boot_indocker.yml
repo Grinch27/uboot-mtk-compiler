@@ -305,7 +305,7 @@ jobs:
           echo -e "Current working directory: $(pwd)"
           # fix sudo in docker
           apt-get update
-          apt-get install -y gcc-aarch64-linux-gnu python3 python3-pip
+          apt-get install -y python3 python3-pip
           # ensure `python` exists for tools that require it
           ln -sf /usr/bin/python3 /usr/bin/python
 
