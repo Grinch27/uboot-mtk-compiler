@@ -246,17 +246,6 @@ jobs:
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Check environment
-        id: checkenv
-        working-directory: /
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          # List all environment variables
-          printenv
-
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
       - name: Compile U-Boot Cycle
         id: compile
         env:
