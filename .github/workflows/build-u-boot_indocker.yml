@@ -94,7 +94,6 @@ jobs:
     container:
       image: ubuntu:devel
     env:
-      self_branch: "main"
       DEBIAN_FRONTEND: noninteractive
       # ========= Toolchain Environment Variables ==========
       # ----- gcc -----
@@ -116,50 +115,20 @@ jobs:
       # ----- docker -----
       docker_install: false
       qemu_install: false
+      # ========= Workspace Environment Variables ==========
+      # ----- Repository -----
+      repo_target: "https://github.com/hanwckf/bl-mt798x"
+      repo_target_branch: "master"
+      repo_self: "https://github.com/${{ github.repository }}"
+      repo_self_branch: "main"
+      # ----- Build Path -----
+      path_build: "/builder"
+      path_target: "/builder/target"
+      path_output: "/builder/output"
+      path_backup: "/builder/backup"
+      path_self: "/builder/self"
+      release_md: "/builder/release.md"
     steps:
-      - name: Set environment variable - ${{ env.device_branch }}
-        id: var
-        working-directory: /
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          # ========== Set repo branch ==========
-          repo_target="https://github.com/hanwckf/bl-mt798x"
-          repo_target_branch="master"
-          repo_self="https://github.com/$GITHUB_REPOSITORY"
-
-          # ========== Build Path ==========
-          dir_build="builder"
-          dir_output="output"
-          dir_backup="backup"
-          dir_self="self"
-          # ---------- / ----------
-          path_build="/${dir_build}"
-          path_target="${path_build}/${self_branch}"
-          path_output="${path_build}/${dir_output}"
-          path_backup="${path_build}/${dir_backup}"
-
-          path_diy="${path_build}/${dir_self}"
-          # release_md="${path_build}/release.md"
-
-          # ========== GITHUB_ENV ==========
-          env_vars=(
-            "repo_target"
-            "repo_target_branch"
-            "repo_self"
-            "path_build"
-            "path_target"
-            "path_output"
-            "path_backup"
-            "path_diy"
-          )
-          # "release_md"
-          for var in "${env_vars[@]}"; do
-            echo "${var}=${!var}" | tee -a $GITHUB_ENV
-          done
-
-          echo "status=success" | tee -a ${GITHUB_OUTPUT}
-
       - name: Load Custom Environment Variables
         id: env-custom
         if: ${{ env.custom_env != '' }}
@@ -205,7 +174,6 @@ jobs:
           qemu_install: ${{ env.qemu_install }}
 
       # ========== General Environment Setup: End ==========
-
       - name: (Disk) disk workspace
         id: disk
         uses: Grinch27/github-actions/.github/actions/setup-disk@main
@@ -225,7 +193,6 @@ jobs:
           echo -e "repo_target: [ ${repo_target} ]\nBRANCH: [ ${repo_target_branch} ]"
 
           df -hT ${PWD}
-          echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Version of Target Repo
         id: git-rev
@@ -235,16 +202,14 @@ jobs:
 
       - name: Clone self
         id: clonediy
-        # if: ${{ 'true' == 'false' }} # disable
         working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${repo_self} ${path_diy} --single-branch --depth=1 --branch=${self_branch}
-          echo -e "repo_self: [ ${repo_self} ]\nBRANCH: [ ${self_branch} ]"
+          git clone ${repo_self} ${path_self} --single-branch --depth=1 --branch=${repo_self_branch}
+          echo -e "repo_self: [ ${repo_self} ]\nBRANCH: [ ${repo_self_branch} ]"
 
           df -hT ${PWD}
-          echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Compile U-Boot Cycle
         id: compile
@@ -334,7 +299,7 @@ jobs:
               for FIXED_MTDPARTS in "${FIXED_MTDPARTS_ARRAY[@]}"; do
                 cd "${path_build}"
                 rm -rf "${path_target}"
-                cp -rf "${path_backup}/${self_branch}" "${path_build}"
+                cp -rf "${path_backup}/${repo_self_branch}" "${path_build}"
                 cd "${path_target}"
                 exec_build_sh "${SOC}" "${BOARD}" "${MULTI_LAYOUT}" "${FIXED_MTDPARTS}"
               done
@@ -375,8 +340,6 @@ jobs:
           }
           main "$@"
 
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
       - name: Setup output
         id: output
         env:
@@ -405,12 +368,10 @@ jobs:
 
           echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
           echo "metadata_sum_path=${metadata_sum_path}" | tee -a ${GITHUB_OUTPUT}
-          echo "status=success" | tee -a ${GITHUB_OUTPUT}
 
       - name: (release.md) Generate
         id: release-md
         env:
-          release_md: "${{ env.GITHUB_WORKSPACE }}/release.md"
           metadata_sum_path: ${{ steps.output.outputs.metadata_sum_path }}
         working-directory: ${{ env.path_target }}
         run: |
@@ -442,8 +403,6 @@ jobs:
           record_to_markdown "sha256sum" "${sum_json_content}" "json"
 
           cat ${{ env.release_md }}
-          echo "release_md=${release_md}" | tee -a ${GITHUB_OUTPUT}
-          echo "status=success" | tee -a ${GITHUB_OUTPUT}
 
       - name: Upload OpenWrt to Release
         id: release
@@ -451,7 +410,6 @@ jobs:
         env:
           timestamp: ${{ steps.output.outputs.timestamp }}
           target_ext: "tar"
-          release_md: ${{ steps.release-md.outputs.release_md }}
           tag_release: ${{ steps.git-rev.outputs.git_desc }}
         with:
           name: "${{ env.timestamp }}_${{ env.tag_release }}"
