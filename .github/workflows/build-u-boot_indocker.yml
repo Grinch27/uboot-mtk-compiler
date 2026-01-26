@@ -450,6 +450,7 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
           ls -al ./
+          mkdir -p "$(dirname "${metadata_sum_path}")"
 
           metadata='{"${{ env.category }}":[]}'
           for file in ./*.${{ env.target_ext }}; do
