@@ -85,20 +85,8 @@ env:
   custom_env: ${{ inputs.custom_env || '' }}
 
 jobs:
-  # setup-host:
-  #   name: Setup on Host
-  #   runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
-  #   defaults:
-  #     run:
-  #       shell: bash
-  #   steps:
-  #     - name: (Setup) Docker
-  #       id: setup-docker
-  #       uses: Grinch27/github-actions/.github/actions/setup-docker@main
-
   build:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
-    # needs: setup-host
     runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
     container:
       image: ubuntu:devel
@@ -106,24 +94,24 @@ jobs:
       run:
         shell: bash
     env:
-      app_branch: "uboot"
+      self_branch: "main"
       DEBIAN_FRONTEND: noninteractive
       # ----- gcc -----
       gcc_purge: true
       gcc_install: true
       gcc_switch: false
-      gcc_version: 15
+      gcc_version: ""
       gcc_aarch64: true
       # ----- clang -----
       clang_purge: false
       clang_install: false
       clang_switch: false
-      clang_version: 19
+      clang_version: ""
       # ----- jdk -----
       jdk_purge: false
       jdk_install: false
       jdk_switch: false
-      jdk_version: 21
+      jdk_version: ""
       # ----- docker -----
       docker_install: false
       qemu_install: false
@@ -144,16 +132,16 @@ jobs:
           # ========== Set repo branch ==========
           repo_target="https://github.com/hanwckf/bl-mt798x"
           repo_target_branch="master"
-          repo_diy="https://github.com/$GITHUB_REPOSITORY"
+          repo_self="https://github.com/$GITHUB_REPOSITORY"
 
           # ========== Build Path ==========
           dir_build="builder"
           dir_output="output"
           dir_backup="backup"
-          dir_diy="DIY"
+          dir_diy="SELF"
           # ---------- / ----------
           path_build="/${dir_build}"
-          path_target="${path_build}/${app_branch}"
+          path_target="${path_build}/${self_branch}"
           path_output="${path_build}/${dir_output}"
           path_backup="${path_build}/${dir_backup}"
 
@@ -164,7 +152,7 @@ jobs:
           env_vars=(
             "repo_target"
             "repo_target_branch"
-            "repo_diy"
+            "repo_self"
             "path_build"
             "path_target"
             "path_output"
@@ -243,7 +231,6 @@ jobs:
 
       - name: Clone Target Repository
         id: clonesys
-        # if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
         working-directory: ${{ env.path_build }}
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -261,16 +248,15 @@ jobs:
         with:
           path_target: ${{ env.path_target }}
 
-      - name: Clone DIY
+      - name: Clone SELF
         id: clonediy
-        # if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
         if: ${{ 'true' == 'false' }} # disable
         working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${repo_diy} ${path_diy} --single-branch --depth=1 --branch=main
-          echo -e "repo_diy: [ ${repo_diy} ]\nBRANCH: [ main ]"
+          git clone ${repo_self} ${path_diy} --single-branch --depth=1 --branch=${self_branch}
+          echo -e "repo_self: [ ${repo_self} ]\nBRANCH: [ ${self_branch} ]"
 
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -375,7 +361,7 @@ jobs:
               for FIXED_MTDPARTS in "${FIXED_MTDPARTS_ARRAY[@]}"; do
                 cd "${path_build}"
                 rm -rf "${path_target}"
-                cp -rf "${path_backup}/${app_branch}" "${path_build}"
+                cp -rf "${path_backup}/${self_branch}" "${path_build}"
                 cd "${path_target}"
                 exec_build_sh "${SOC}" "${BOARD}" "${MULTI_LAYOUT}" "${FIXED_MTDPARTS}"
               done
@@ -495,7 +481,7 @@ jobs:
           timestamp: ${{ steps.output.outputs.timestamp }}
           target_ext: "tar"
           release_md: ${{ steps.release-md.outputs.release_md }}
-          # tag_release: ${{ env.tag_release || env.app_branch }}
+          # tag_release: ${{ env.tag_release || env.self_branch }}
           tag_release: ${{ steps.git-rev.outputs.git_desc }}
         with:
           name: "${{ env.timestamp }}_${{ env.tag_release }}"
