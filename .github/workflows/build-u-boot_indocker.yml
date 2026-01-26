@@ -526,13 +526,3 @@ jobs:
           replacesArtifacts: true
           token: "${{ secrets.GITHUB_TOKEN }}"
           bodyFile: "${{ env.release_md }}"
-
-      - name: Clear workspace
-        id: clearwork
-        if: ${{ 'true' == 'false' }} # disable
-        working-directory: ${{ env.path_build }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          rm -rf ./* 2>/dev/null
-          df -hT ${PWD}
-          echo "status=success" >> ${GITHUB_OUTPUT}
