@@ -1,4 +1,5 @@
 name: (Docker) Build U-Boot
+# ${{ github.workspace }} - > ${{ env.GITHUB_WORKSPACE }}
 
 permissions:
   contents: write
@@ -473,7 +474,7 @@ jobs:
       - name: (release.md) Generate
         id: release-md
         env:
-          release_md: "${{ github.workspace }}/release.md"
+          release_md: "${{ env.GITHUB_WORKSPACE }}/release.md"
           metadata_sum_path: ${{ steps.output.outputs.metadata_sum_path }}
         working-directory: ${{ env.path_target }}
         run: |
