@@ -113,6 +113,7 @@ jobs:
       gcc_install: true
       gcc_switch: true
       gcc_version: 15
+      gcc_aarch64: true
       # ----- clang -----
       clang_purge: true
       # clang_install: true
