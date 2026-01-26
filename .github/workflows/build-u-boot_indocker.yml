@@ -122,13 +122,6 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          # ========== IN DOCKER ==========
-          if [ -f /.dockerenv ]; then
-            echo "in_container=true" | tee -a ${GITHUB_OUTPUT}
-          else
-            echo "in_container=false" | tee -a ${GITHUB_OUTPUT}
-          fi
-
           # ========== Set repo branch ==========
           repo_target="https://github.com/hanwckf/bl-mt798x"
           repo_target_branch="master"
@@ -138,14 +131,14 @@ jobs:
           dir_build="builder"
           dir_output="output"
           dir_backup="backup"
-          dir_diy="SELF"
+          dir_self="self"
           # ---------- / ----------
           path_build="/${dir_build}"
           path_target="${path_build}/${self_branch}"
           path_output="${path_build}/${dir_output}"
           path_backup="${path_build}/${dir_backup}"
 
-          path_diy="${path_build}/${dir_diy}"
+          path_diy="${path_build}/${dir_self}"
           # release_md="${path_build}/release.md"
 
           # ========== GITHUB_ENV ==========
@@ -186,7 +179,6 @@ jobs:
       # ========== General Environment Setup: Start ==========
       - name: (Env) Environment for OpenWrt
         id: env-toolchain
-        # if: ${{ steps.var.outputs.in_container != 'true' }}
         uses: Grinch27/github-actions/.github/actions/env-toolchain@main
         with:
           # ----- gcc -----
@@ -213,21 +205,11 @@ jobs:
 
       - name: (Disk) disk workspace
         id: disk
-        if: ${{ steps.var.outputs.in_container != 'true' }}
         uses: Grinch27/github-actions/.github/actions/setup-disk@main
         with:
           path_build: ${{ env.path_build }}
           root_num: 4
           mnt_num: 1
-
-      - name: (Disk) disk workspace
-        id: disk-fix
-        working-directory: /
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          sudo mkdir -p "${path_build}"
-          sudo chown -R $(whoami):$(whoami) "${path_build}"
 
       - name: Clone Target Repository
         id: clonesys
@@ -248,9 +230,9 @@ jobs:
         with:
           path_target: ${{ env.path_target }}
 
-      - name: Clone SELF
+      - name: Clone self
         id: clonediy
-        if: ${{ 'true' == 'false' }} # disable
+        # if: ${{ 'true' == 'false' }} # disable
         working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -274,7 +256,6 @@ jobs:
 
       - name: Compile U-Boot Cycle
         id: compile
-        # if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
         env:
           device: ${{ env.device_branch }}
         working-directory: ${{ env.path_build }}
@@ -406,7 +387,6 @@ jobs:
 
       - name: Setup output
         id: output
-        # if: ${{ 'true' == 'false' }} # disable
         env:
           metadata_sum_path: "${{ env.GITHUB_WORKSPACE }}/metadata_sum.json"
           category: "files"
@@ -476,12 +456,10 @@ jobs:
       - name: Upload OpenWrt to Release
         id: release
         uses: ncipollo/release-action@main
-        # if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         env:
           timestamp: ${{ steps.output.outputs.timestamp }}
           target_ext: "tar"
           release_md: ${{ steps.release-md.outputs.release_md }}
-          # tag_release: ${{ env.tag_release || env.self_branch }}
           tag_release: ${{ steps.git-rev.outputs.git_desc }}
         with:
           name: "${{ env.timestamp }}_${{ env.tag_release }}"
