@@ -111,19 +111,19 @@ jobs:
       # ----- gcc -----
       gcc_purge: true
       gcc_install: true
-      gcc_switch: true
+      gcc_switch: false
       gcc_version: 15
       gcc_aarch64: true
       # ----- clang -----
-      clang_purge: true
-      # clang_install: true
-      # clang_switch: true
+      clang_purge: false
+      clang_install: false
+      clang_switch: false
       clang_version: 19
       # ----- jdk -----
-      # jdk_purge: true
-      # jdk_install: true
-      # jdk_switch: true
-      # jdk_version: 21
+      jdk_purge: false
+      jdk_install: false
+      jdk_switch: false
+      jdk_version: 21
       # ----- docker -----
       docker_install: false
       qemu_install: false
@@ -210,7 +210,7 @@ jobs:
 
       - name: (Env) Environment for OpenWrt
         id: env-toolchain
-        if: ${{ steps.var.outputs.in_container != 'true' }}
+        # if: ${{ steps.var.outputs.in_container != 'true' }}
         uses: Grinch27/github-actions/.github/actions/env-toolchain@main
         with:
           # ----- gcc -----
