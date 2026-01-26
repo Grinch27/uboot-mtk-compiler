@@ -88,14 +88,15 @@ jobs:
   build:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
     runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
-    container:
-      image: ubuntu:devel
     defaults:
       run:
         shell: bash
+    container:
+      image: ubuntu:devel
     env:
       self_branch: "main"
       DEBIAN_FRONTEND: noninteractive
+      # ========= Toolchain Environment Variables ==========
       # ----- gcc -----
       gcc_purge: true
       gcc_install: true
@@ -167,6 +168,8 @@ jobs:
         working-directory: /
         run: |
           echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
+          # List all environment variables
+          printenv
 
       - name: (Apt) Docker Needed for Actions
         id: fix-docker
