@@ -13,11 +13,12 @@ on:
 jobs:
   uboot:
     name: ${{ matrix.workflows_inputs.device_branch }}
-    uses: ./.github/workflows/build-u-boot.yml
+    # uses: ./.github/workflows/build-u-boot.yml
+    uses: ./.github/workflows/build-u-boot_indocker.yml
     strategy:
       fail-fast: false
       matrix:
-        runner_image: ["ubuntu-24.04"]
+        runner_image: ["ubuntu-latest"]
         workflows_inputs:
           - device_branch: "all"
     with:
