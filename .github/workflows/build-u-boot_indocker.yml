@@ -182,7 +182,7 @@ jobs:
         id: disk
         uses: Grinch27/github-actions/.github/actions/setup-disk@main
         with:
-          PATH_build: ${{ env.PATH_build }}
+          path_build: ${{ env.PATH_build }}
           root_num: 4
           mnt_num: 1
 
@@ -202,7 +202,7 @@ jobs:
         id: git-rev
         uses: Grinch27/github-actions/.github/actions/git-rev@main
         with:
-          PATH_target: ${{ env.PATH_target }}
+          path_target: ${{ env.PATH_target }}
 
       - name: Clone self
         id: clonediy
