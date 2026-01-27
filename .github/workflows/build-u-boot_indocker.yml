@@ -131,7 +131,6 @@ jobs:
     steps:
       - name: Load Custom Environment Variables
         id: env-custom
-        if: ${{ env.custom_env != '' }}
         uses: Grinch27/github-actions/.github/actions/input-custom@main
 
       - name: (Apt) Docker Needed for Actions
