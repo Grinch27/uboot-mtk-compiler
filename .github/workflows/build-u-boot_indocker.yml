@@ -140,6 +140,15 @@ jobs:
           # List all environment variables
           printenv
 
+      - name: (Env) mkdir -p PATH_* vars
+        id: env-path-mkdir
+        shell: bash
+        working-directory: /
+        run: |
+          printenv | grep '^PATH_' | while IFS='=' read -r key val; do
+            [ -n "$val" ] && mkdir -p "$val"
+          done
+
       - name: (Apt) Docker Needed for Actions
         id: fix-docker
         uses: Grinch27/github-actions/.github/actions/fix-indocker@main
@@ -339,84 +348,3 @@ jobs:
             fi
           }
           main "$@"
-
-      - name: Setup output
-        id: output
-        env:
-          metadata_sum_path: "${{ env.GITHUB_WORKSPACE }}/metadata_sum.json"
-          category: "files"
-          target_ext: "bin"
-        working-directory: ${{ env.PATH_output }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          ls -al ./
-          mkdir -p "$(dirname "${metadata_sum_path}")"
-
-          metadata='{"${{ env.category }}":[]}'
-          for file in ./*.${{ env.target_ext }}; do
-            if [[ ! -d "${file}" ]]; then
-              read -r checksum filename <<< "$(sha256sum "${file}")"
-              filename=$(basename "${filename}")
-              metadata=$(jq \
-                --arg filename "${filename}" \
-                --arg checksum "${checksum}" \
-                '.${{ env.category }} += [{filename: $filename, checksum: $checksum}]' <<< "${metadata}")
-            fi
-          done
-          echo "metadata=${metadata}"
-          echo "${metadata}" | jq . > ${{ env.metadata_sum_path }}
-
-          echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
-          echo "metadata_sum_path=${metadata_sum_path}" | tee -a ${GITHUB_OUTPUT}
-
-      - name: (release.md) Generate
-        id: release-md
-        env:
-          metadata_sum_path: ${{ steps.output.outputs.metadata_sum_path }}
-        working-directory: ${{ env.PATH_target }}
-        run: |
-          printf "Current working directory: %s\n" "$(pwd)"
-
-          release_md_dir=$(dirname ${{ env.release_md }})
-          mkdir -p ${release_md_dir}
-          : > ${{ env.release_md }}
-
-          record_to_markdown() {
-            local title="$1"
-            local content="$2"
-            local code_block="${3:-}"
-            local format="\n### %s\n%s\n"
-
-            if [[ -n "${code_block}" ]]; then
-              format="\n### %s\n\n<details>\n<summary>%s</summary>\n\n\`\`\`%s\n%s\n\`\`\`\n\n</details>\n"
-              printf "${format}" "${title}" "${title}" "${code_block}" "${content}" | tee -a ${{ env.release_md }}
-            else
-              printf "${format}" "${title}" "${content}" | tee -a ${{ env.release_md }}
-            fi
-          }
-
-          record_to_markdown "Timestamp" "- [x] $(date +"%Y-%m-%d %H:%M:%S %z")"
-          record_to_markdown "Repository" "- [x] ${repo_target}"
-          record_to_markdown "Repository Branch" "- [x] ${repo_target_branch}"
-
-          sum_json_content=$(jq '.' "${{ env.metadata_sum_path }}")
-          record_to_markdown "sha256sum" "${sum_json_content}" "json"
-
-          cat ${{ env.release_md }}
-
-      - name: Upload OpenWrt to Release
-        id: release
-        uses: ncipollo/release-action@main
-        env:
-          timestamp: ${{ steps.output.outputs.timestamp }}
-          target_ext: "tar"
-          tag_release: ${{ steps.git-rev.outputs.git_desc }}
-        with:
-          name: "${{ env.timestamp }}_${{ env.tag_release }}"
-          tag: "${{ env.tag_release }}"
-          artifacts: "${{ env.PATH_output }}/*"
-          allowUpdates: true
-          removeArtifacts: false
-          replacesArtifacts: true
-          token: "${{ secrets.GITHUB_TOKEN }}"
-          bodyFile: "${{ env.release_md }}"
