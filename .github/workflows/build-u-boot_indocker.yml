@@ -166,7 +166,6 @@ jobs:
           docker_install: ${{ env.docker_install }}
           qemu_install: ${{ env.qemu_install }}
 
-      # ========== General Environment Setup: End ==========
       - name: (Disk) disk workspace
         id: disk
         uses: Grinch27/github-actions/.github/actions/setup-disk@main
@@ -174,6 +173,8 @@ jobs:
           path_build: ${{ env.PATH_build }}
           root_num: 4
           mnt_num: 1
+
+      # ========== General Environment Setup: End ==========
 
       - name: Clone Target Repository
         id: clonesys
