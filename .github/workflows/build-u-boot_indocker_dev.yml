@@ -129,63 +129,10 @@ jobs:
       PATH_self: "/builder/self"
       release_md: "/builder/release.md"
     steps:
-      - name: Load Custom Environment Variables
-        id: env-custom
-        if: ${{ env.custom_env != '' }}
-        env:
-          flag_split: ";"
-        working-directory: /
-        run: |
-          echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
-          # List all environment variables
-          printenv
-          # Create directories for PATH_* variables
-          printenv | grep '^PATH_' | while IFS='=' read -r key val; do
-            [ -n "$val" ] && mkdir -p "$val"
-          done
-
-      - name: (Apt) Docker Needed for Actions
-        id: fix-docker
-        uses: Grinch27/github-actions/.github/actions/fix-indocker@main
-
-      - name: (Apt) install packages - OpenWrt
-        id: apt-openwrt
-        uses: Grinch27/github-actions/.github/actions/apt-openwrt@main
-
-      # ========== General Environment Setup: Start ==========
-      - name: (Env) Environment for OpenWrt
-        id: env-toolchain
-        uses: Grinch27/github-actions/.github/actions/env-toolchain@main
-        with:
-          # ----- gcc -----
-          gcc_purge: ${{ env.gcc_purge }}
-          gcc_install: ${{ env.gcc_install }}
-          gcc_switch: ${{ env.gcc_switch }}
-          gcc_version: ${{ env.gcc_version }}
-          gcc_aarch64: ${{ env.gcc_aarch64 }}
-          # ----- clang -----
-          clang_purge: ${{ env.clang_purge }}
-          clang_install: ${{ env.clang_install }}
-          clang_switch: ${{ env.clang_switch }}
-          clang_version: ${{ env.clang_version }}
-          # ----- jdk -----
-          jdk_purge: ${{ env.jdk_purge }}
-          jdk_install: ${{ env.jdk_install }}
-          jdk_switch: ${{ env.jdk_switch }}
-          jdk_version: ${{ env.jdk_version }}
-          # ----- docker -----
-          docker_install: ${{ env.docker_install }}
-          qemu_install: ${{ env.qemu_install }}
-
+      - name: Docker Workspace All in One
+        id: docker-workspace
+        uses: Grinch27/github-actions/.github/actions/env-indocker@main
       # ========== General Environment Setup: End ==========
-      - name: (Disk) disk workspace
-        id: disk
-        uses: Grinch27/github-actions/.github/actions/setup-disk@main
-        with:
-          path_build: ${{ env.PATH_build }}
-          root_num: 4
-          mnt_num: 1
-
       - name: Clone Target Repository
         id: clonesys
         working-directory: ${{ env.PATH_build }}
@@ -345,39 +292,8 @@ jobs:
           }
           main "$@"
 
-      # - name: Setup output
-      #   id: output
-      #   env:
-      #     metadata_sum_path: "${{ env.GITHUB_WORKSPACE }}/metadata_sum.json"
-      #     category: "files"
-      #     target_ext: "bin"
-      #   working-directory: ${{ env.PATH_output }}
-      #   run: |
-      #     echo -e "Current working directory: $(pwd)"
-      #     ls -al ./
-      #     mkdir -p "$(dirname "${metadata_sum_path}")"
-
-      #     metadata='{"${{ env.category }}":[]}'
-      #     for file in ./*.${{ env.target_ext }}; do
-      #       if [[ ! -d "${file}" ]]; then
-      #         read -r checksum filename <<< "$(sha256sum "${file}")"
-      #         filename=$(basename "${filename}")
-      #         metadata=$(jq \
-      #           --arg filename "${filename}" \
-      #           --arg checksum "${checksum}" \
-      #           '.${{ env.category }} += [{filename: $filename, checksum: $checksum}]' <<< "${metadata}")
-      #       fi
-      #     done
-      #     echo "metadata=${metadata}"
-      #     echo "${metadata}" | jq . > ${{ env.metadata_sum_path }}
-
-      #     echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
-      #     echo "metadata_sum_path=${metadata_sum_path}" | tee -a ${GITHUB_OUTPUT}
-
       - name: (release.md) Generate
         id: release-md
-        # env:
-        #   metadata_sum_path: ${{ steps.output.outputs.metadata_sum_path }}
         working-directory: ${{ env.PATH_target }}
         run: |
           echo -e "Current working directory: $(pwd)"
