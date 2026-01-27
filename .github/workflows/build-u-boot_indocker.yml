@@ -132,17 +132,7 @@ jobs:
       - name: Load Custom Environment Variables
         id: env-custom
         if: ${{ env.custom_env != '' }}
-        env:
-          flag_split: ";"
-        working-directory: /
-        run: |
-          echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
-          # List all environment variables
-          printenv
-          # Create directories for PATH_* variables
-          printenv | grep '^PATH_' | while IFS='=' read -r key val; do
-            [ -n "$val" ] && mkdir -p "$val"
-          done
+        uses: Grinch27/github-actions/.github/actions/input-custom@main
 
       - name: (Apt) Docker Needed for Actions
         id: fix-docker
@@ -345,35 +335,6 @@ jobs:
           }
           main "$@"
 
-      # - name: Setup output
-      #   id: output
-      #   env:
-      #     metadata_sum_path: "${{ env.GITHUB_WORKSPACE }}/metadata_sum.json"
-      #     category: "files"
-      #     target_ext: "bin"
-      #   working-directory: ${{ env.PATH_output }}
-      #   run: |
-      #     echo -e "Current working directory: $(pwd)"
-      #     ls -al ./
-      #     mkdir -p "$(dirname "${metadata_sum_path}")"
-
-      #     metadata='{"${{ env.category }}":[]}'
-      #     for file in ./*.${{ env.target_ext }}; do
-      #       if [[ ! -d "${file}" ]]; then
-      #         read -r checksum filename <<< "$(sha256sum "${file}")"
-      #         filename=$(basename "${filename}")
-      #         metadata=$(jq \
-      #           --arg filename "${filename}" \
-      #           --arg checksum "${checksum}" \
-      #           '.${{ env.category }} += [{filename: $filename, checksum: $checksum}]' <<< "${metadata}")
-      #       fi
-      #     done
-      #     echo "metadata=${metadata}"
-      #     echo "${metadata}" | jq . > ${{ env.metadata_sum_path }}
-
-      #     echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
-      #     echo "metadata_sum_path=${metadata_sum_path}" | tee -a ${GITHUB_OUTPUT}
-
       - name: (release.md) Generate
         id: release-md
         # env:
@@ -427,3 +388,32 @@ jobs:
           removeArtifacts: false
           replacesArtifacts: true
           token: "${{ secrets.GITHUB_TOKEN }}"
+
+      # - name: Setup output
+      #   id: output
+      #   env:
+      #     metadata_sum_path: "${{ env.GITHUB_WORKSPACE }}/metadata_sum.json"
+      #     category: "files"
+      #     target_ext: "bin"
+      #   working-directory: ${{ env.PATH_output }}
+      #   run: |
+      #     echo -e "Current working directory: $(pwd)"
+      #     ls -al ./
+      #     mkdir -p "$(dirname "${metadata_sum_path}")"
+
+      #     metadata='{"${{ env.category }}":[]}'
+      #     for file in ./*.${{ env.target_ext }}; do
+      #       if [[ ! -d "${file}" ]]; then
+      #         read -r checksum filename <<< "$(sha256sum "${file}")"
+      #         filename=$(basename "${filename}")
+      #         metadata=$(jq \
+      #           --arg filename "${filename}" \
+      #           --arg checksum "${checksum}" \
+      #           '.${{ env.category }} += [{filename: $filename, checksum: $checksum}]' <<< "${metadata}")
+      #       fi
+      #     done
+      #     echo "metadata=${metadata}"
+      #     echo "${metadata}" | jq . > ${{ env.metadata_sum_path }}
+
+      #     echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
+      #     echo "metadata_sum_path=${metadata_sum_path}" | tee -a ${GITHUB_OUTPUT}
