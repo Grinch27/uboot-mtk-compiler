@@ -139,12 +139,7 @@ jobs:
           echo "${{ env.custom_env }}" | tr '${{ env.flag_split }}' '\n' | tee -a $GITHUB_ENV
           # List all environment variables
           printenv
-
-      - name: (Env) mkdir -p PATH_* vars
-        id: env-path-mkdir
-        shell: bash
-        working-directory: /
-        run: |
+          # Create directories for PATH_* variables
           printenv | grep '^PATH_' | while IFS='=' read -r key val; do
             [ -n "$val" ] && mkdir -p "$val"
           done
