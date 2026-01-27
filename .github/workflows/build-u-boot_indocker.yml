@@ -303,7 +303,8 @@ jobs:
               for FIXED_MTDPARTS in "${FIXED_MTDPARTS_ARRAY[@]}"; do
                 cd "${PATH_build}"
                 rm -rf "${PATH_target}"
-                cp -rf "${PATH_backup}/${repo_self_branch}" "${PATH_build}"
+                # 恢复备份的 target 目录
+                cp -rf "${PATH_backup}/$(basename "${PATH_target}")" "${PATH_build}"
                 cd "${PATH_target}"
                 exec_build_sh "${SOC}" "${BOARD}" "${MULTI_LAYOUT}" "${FIXED_MTDPARTS}"
               done
