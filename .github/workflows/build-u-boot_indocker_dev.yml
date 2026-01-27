@@ -328,7 +328,7 @@ jobs:
 
           echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
 
-      - name: Upload OpenWrt to Release
+      - name: Upload to Release
         id: release
         uses: ncipollo/release-action@main
         env:
