@@ -122,11 +122,11 @@ jobs:
       repo_self: "https://github.com/${{ github.repository }}"
       repo_self_branch: "main"
       # ----- Build Path -----
-      path_build: "/builder"
-      path_target: "/builder/target"
-      path_output: "/builder/output"
-      path_backup: "/builder/backup"
-      path_self: "/builder/self"
+      PATH_build: "/builder"
+      PATH_target: "/builder/target"
+      PATH_output: "/builder/output"
+      PATH_backup: "/builder/backup"
+      PATH_self: "/builder/self"
       release_md: "/builder/release.md"
     steps:
       - name: Load Custom Environment Variables
@@ -178,18 +178,18 @@ jobs:
         id: disk
         uses: Grinch27/github-actions/.github/actions/setup-disk@main
         with:
-          path_build: ${{ env.path_build }}
+          PATH_build: ${{ env.PATH_build }}
           root_num: 4
           mnt_num: 1
 
       - name: Clone Target Repository
         id: clonesys
-        working-directory: ${{ env.path_build }}
+        working-directory: ${{ env.PATH_build }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
           # Clone target repository: without --depth=1
-          git clone ${repo_target} ${path_target} --single-branch --branch=${repo_target_branch} 
+          git clone ${repo_target} ${PATH_target} --single-branch --branch=${repo_target_branch} 
           echo -e "repo_target: [ ${repo_target} ]\nBRANCH: [ ${repo_target_branch} ]"
 
           df -hT ${PWD}
@@ -198,7 +198,7 @@ jobs:
         id: git-rev
         uses: Grinch27/github-actions/.github/actions/git-rev@main
         with:
-          path_target: ${{ env.path_target }}
+          PATH_target: ${{ env.PATH_target }}
 
       - name: Clone self
         id: clonediy
@@ -206,7 +206,7 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${repo_self} ${path_self} --single-branch --depth=1 --branch=${repo_self_branch}
+          git clone ${repo_self} ${PATH_self} --single-branch --depth=1 --branch=${repo_self_branch}
           echo -e "repo_self: [ ${repo_self} ]\nBRANCH: [ ${repo_self_branch} ]"
 
           df -hT ${PWD}
@@ -215,7 +215,7 @@ jobs:
         id: compile
         env:
           device: ${{ env.device_branch }}
-        working-directory: ${{ env.path_build }}
+        working-directory: ${{ env.PATH_build }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
@@ -267,10 +267,10 @@ jobs:
           backup_repo() {
             local ORIGINAL_DIR="$PWD"
 
-            echo "Backup path: ${path_backup}"
-            mkdir -p ${path_backup}
-            cp -rf ${path_target} ${path_backup}
-            ls -al ${path_backup}
+            echo "Backup path: ${PATH_backup}"
+            mkdir -p ${PATH_backup}
+            cp -rf ${PATH_target} ${PATH_backup}
+            ls -al ${PATH_backup}
 
             echo "Changing back to the original directory ${ORIGINAL_DIR}"
             cd "${ORIGINAL_DIR}"
@@ -297,10 +297,10 @@ jobs:
             
             for MULTI_LAYOUT in "${MULTI_LAYOUT_ARRAY[@]}"; do
               for FIXED_MTDPARTS in "${FIXED_MTDPARTS_ARRAY[@]}"; do
-                cd "${path_build}"
-                rm -rf "${path_target}"
-                cp -rf "${path_backup}/${repo_self_branch}" "${path_build}"
-                cd "${path_target}"
+                cd "${PATH_build}"
+                rm -rf "${PATH_target}"
+                cp -rf "${PATH_backup}/${repo_self_branch}" "${PATH_build}"
+                cd "${PATH_target}"
                 exec_build_sh "${SOC}" "${BOARD}" "${MULTI_LAYOUT}" "${FIXED_MTDPARTS}"
               done
             done
@@ -315,12 +315,12 @@ jobs:
             echo -e "Current working directory: $(pwd)"
             echo -e "---------- Compile U-Boot of ${BOARD} ----------"
             SOC=${SOC} BOARD=${BOARD} MULTI_LAYOUT=${MULTI_LAYOUT} FIXED_MTDPARTS=${FIXED_MTDPARTS} ./build.sh
-            cp -rf ./output/* ${path_output}
+            cp -rf ./output/* ${PATH_output}
           }
 
           # ===== main function =====
           main() {
-            mkdir -p ${path_output}
+            mkdir -p ${PATH_output}
             backup_repo
 
             if [[ -z "${device}" || "${device,,}" == "all" ]]; then
@@ -346,7 +346,7 @@ jobs:
           metadata_sum_path: "${{ env.GITHUB_WORKSPACE }}/metadata_sum.json"
           category: "files"
           target_ext: "bin"
-        working-directory: ${{ env.path_output }}
+        working-directory: ${{ env.PATH_output }}
         run: |
           echo -e "Current working directory: $(pwd)"
           ls -al ./
@@ -373,7 +373,7 @@ jobs:
         id: release-md
         env:
           metadata_sum_path: ${{ steps.output.outputs.metadata_sum_path }}
-        working-directory: ${{ env.path_target }}
+        working-directory: ${{ env.PATH_target }}
         run: |
           printf "Current working directory: %s\n" "$(pwd)"
 
@@ -414,7 +414,7 @@ jobs:
         with:
           name: "${{ env.timestamp }}_${{ env.tag_release }}"
           tag: "${{ env.tag_release }}"
-          artifacts: "${{ env.path_output }}/*"
+          artifacts: "${{ env.PATH_output }}/*"
           allowUpdates: true
           removeArtifacts: false
           replacesArtifacts: true
