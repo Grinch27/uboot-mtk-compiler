@@ -117,10 +117,10 @@ jobs:
       qemu_install: false
       # ========= Workspace Environment Variables ==========
       # ----- Repository -----
-      repo_target: "https://github.com/hanwckf/bl-mt798x"
-      repo_target_branch: "master"
-      repo_self: "https://github.com/${{ github.repository }}"
-      repo_self_branch: "main"
+      REPO_target: "https://github.com/hanwckf/bl-mt798x"
+      REPO_target_branch: "master"
+      REPO_self: "https://github.com/${{ github.repository }}"
+      REPO_self_branch: "main"
       # ----- Build Path -----
       PATH_build: "/builder"
       PATH_target: "/builder/target"
@@ -134,14 +134,14 @@ jobs:
         uses: Grinch27/github-actions/.github/actions/env-indocker@main
       # ========== General Environment Setup: End ==========
       - name: Clone Target Repository
-        id: clonesys
+        id: clone-target
         working-directory: ${{ env.PATH_build }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
           # Clone target repository: without --depth=1
-          git clone ${repo_target} ${PATH_target} --single-branch --branch=${repo_target_branch} 
-          echo -e "repo_target: [ ${repo_target} ]\nBRANCH: [ ${repo_target_branch} ]"
+          git clone ${REPO_target} ${PATH_target} --single-branch --branch=${REPO_target_branch} 
+          echo -e "REPO_target: [ ${REPO_target} ]\nBRANCH: [ ${REPO_target_branch} ]"
 
           df -hT ${PWD}
 
@@ -152,13 +152,13 @@ jobs:
           path_target: ${{ env.PATH_target }}
 
       - name: Clone self
-        id: clonediy
+        id: clone-self
         working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${repo_self} ${PATH_self} --single-branch --depth=1 --branch=${repo_self_branch}
-          echo -e "repo_self: [ ${repo_self} ]\nBRANCH: [ ${repo_self_branch} ]"
+          git clone ${REPO_self} ${PATH_self} --single-branch --depth=1 --branch=${REPO_self_branch}
+          echo -e "REPO_self: [ ${REPO_self} ]\nBRANCH: [ ${REPO_self_branch} ]"
 
           df -hT ${PWD}
 
@@ -318,8 +318,8 @@ jobs:
           }
 
           record_to_markdown "Timestamp" "- [x] $(date +"%Y-%m-%d %H:%M:%S %z")"
-          record_to_markdown "Repository" "- [x] ${repo_target}"
-          record_to_markdown "Repository Branch" "- [x] ${repo_target_branch}"
+          record_to_markdown "Repository" "- [x] ${REPO_target}"
+          record_to_markdown "Repository Branch" "- [x] ${REPO_target_branch}"
 
           # sum_json_content=$(jq '.' "${{ env.metadata_sum_path }}")
           # record_to_markdown "sha256sum" "${sum_json_content}" "json"
