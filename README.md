@@ -621,17 +621,17 @@ ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
 # 注意，请根据实际 cat /proc/mtd 显示的BL2和FIP实际名称进行调整（注意大小写）
 
 # 刷写 BL2 分区
-ssh root@192.168.1.1 "mtd erase bl2"
-ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin bl2"
-ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin bl2"
+ssh root@192.168.1.1 "mtd erase BL2"
+ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin BL2"
+ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin BL2"
 
 # 刷写 FIP 分区
-ssh root@192.168.1.1 "mtd erase fip"
-ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip fip"
-ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip fip"
+ssh root@192.168.1.1 "mtd erase FIP"
+ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip FIP"
+ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip FIP"
 
 # 清除pstore防止启动到恢复模式（此步命令可跳过）
-rm -f /sys/fs/pstore/*
+ssh root@192.168.1.1 "rm -f /sys/fs/pstore/*"
 
 ssh root@192.168.1.1 "reboot"
 ```
