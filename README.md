@@ -725,6 +725,7 @@ flash_mtd() {
 }
 
 # 查看分区情况
+ssh-keygen -R '192.168.1.1'
 ssh root@192.168.1.1 "cat /proc/mtd"
 
 # 刷写 BL2 分区
