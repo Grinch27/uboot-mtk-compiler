@@ -240,9 +240,37 @@ upload_file --file "./mt7981_ax3000t-fip-fixed-parts-multi-layout.bin"
 
 ```bash
 # 刷写 FIP 分区
-ssh root@192.168.31.1 "mtd erase FIP"
-ssh root@192.168.31.1 "mtd write /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layout.bin FIP"
-ssh root@192.168.31.1 "mtd verify /tmp/mt7981_ax3000t-fip-fixed-parts-multi-layout.bin FIP"
+flash_mtd() {
+    local ip="192.168.31.1"
+    local file=""
+    local partition=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--ip)
+                ip="$2"; shift 2 ;;
+            -f|--file)
+                file="$2"; shift 2 ;;
+            -p|--partition)
+                partition="$2"; shift 2 ;;
+            *)
+                break ;;
+        esac
+    done
+
+    [[ -n "${file}" ]] || { echo "缺少参数: --file"; return 1; }
+    [[ -n "${partition}" ]] || { echo "缺少参数: --partition"; return 1; }
+
+    local remote_file="/tmp/$(basename "${file}")"
+    set -x
+    ssh root@"${ip}" "mtd erase ${partition}" || return 1
+    ssh root@"${ip}" "mtd write '${remote_file}' ${partition}" || return 1
+    ssh root@"${ip}" "mtd verify '${remote_file}' ${partition}"
+}
+
+# 查看分区情况
+ssh root@192.168.31.1 "cat /proc/mtd"
+
+flash_mtd --ip "192.168.31.1" --file "./mt7981_ax3000t-fip-fixed-parts-multi-layout.bin" --partition "FIP"
 ```
 
 此步骤可跳过：清除 pstore
@@ -358,15 +386,41 @@ ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
 
 # 注意，请根据实际 cat /proc/mtd 显示的BL2和FIP实际名称进行调整（注意大小写）
 
+flash_mtd() {
+    local ip="192.168.1.1"
+    local file=""
+    local partition=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--ip)
+                ip="$2"; shift 2 ;;
+            -f|--file)
+                file="$2"; shift 2 ;;
+            -p|--partition)
+                partition="$2"; shift 2 ;;
+            *)
+                break ;;
+        esac
+    done
+
+    [[ -n "${file}" ]] || { echo "缺少参数: --file"; return 1; }
+    [[ -n "${partition}" ]] || { echo "缺少参数: --partition"; return 1; }
+
+    local remote_file="/tmp/$(basename "${file}")"
+    set -x
+    ssh root@"${ip}" "mtd erase ${partition}" || return 1
+    ssh root@"${ip}" "mtd write '${remote_file}' ${partition}" || return 1
+    ssh root@"${ip}" "mtd verify '${remote_file}' ${partition}"
+}
+
+# 查看分区情况
+ssh root@192.168.1.1 "cat /proc/mtd"
+
 # 刷写 BL2 分区
-ssh root@192.168.1.1 "mtd erase BL2"
-ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-preloader.bin BL2"
-ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-preloader.bin BL2"
+flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-preloader.bin" --partition "BL2"
 
 # 刷写 FIP 分区
-ssh root@192.168.1.1 "mtd erase FIP"
-ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-bl31-uboot.fip FIP"
-ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-bl31-uboot.fip FIP"
+flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-bl31-uboot.fip" --partition "FIP"
 
 # 清除pstore防止启动到恢复模式（此步命令可跳过）
 rm -f /sys/fs/pstore/*
@@ -518,9 +572,33 @@ upload_file --file "./mt7981_nokia_ea0326gmp-fip-fixed-parts.bin"
 
 ```bash
 # 刷写 FIP 分区
-ssh root@192.168.10.1 "mtd erase FIP"
-ssh root@192.168.10.1 "mtd write /tmp/mt7981_nokia_ea0326gmp-fip-fixed-parts.bin FIP"
-ssh root@192.168.10.1 "mtd verify /tmp/mt7981_nokia_ea0326gmp-fip-fixed-parts.bin FIP"
+flash_mtd() {
+    local ip="192.168.10.1"
+    local file=""
+    local partition=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--ip)
+                ip="$2"; shift 2 ;;
+            -f|--file)
+                file="$2"; shift 2 ;;
+            -p|--partition)
+                partition="$2"; shift 2 ;;
+            *)
+                break ;;
+        esac
+    done
+
+    [[ -n "${file}" ]] || { echo "缺少参数: --file"; return 1; }
+    [[ -n "${partition}" ]] || { echo "缺少参数: --partition"; return 1; }
+
+    local remote_file="/tmp/$(basename "${file}")"
+    ssh root@"${ip}" "mtd erase ${partition}" || return 1
+    ssh root@"${ip}" "mtd write '${remote_file}' ${partition}" || return 1
+    ssh root@"${ip}" "mtd verify '${remote_file}' ${partition}"
+}
+
+flash_mtd --ip "192.168.10.1" --file "./mt7981_nokia_ea0326gmp-fip-fixed-parts.bin" --partition "FIP"
 ```
 
 此步骤可跳过：清除 pstore
@@ -620,15 +698,40 @@ ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
 
 # 注意，请根据实际 cat /proc/mtd 显示的BL2和FIP实际名称进行调整（注意大小写）
 
+flash_mtd() {
+    local ip="192.168.1.1"
+    local file=""
+    local partition=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--ip)
+                ip="$2"; shift 2 ;;
+            -f|--file)
+                file="$2"; shift 2 ;;
+            -p|--partition)
+                partition="$2"; shift 2 ;;
+            *)
+                break ;;
+        esac
+    done
+
+    [[ -n "${file}" ]] || { echo "缺少参数: --file"; return 1; }
+    [[ -n "${partition}" ]] || { echo "缺少参数: --partition"; return 1; }
+
+    local remote_file="/tmp/$(basename "${file}")"
+    ssh root@"${ip}" "mtd erase ${partition}" || return 1
+    ssh root@"${ip}" "mtd write '${remote_file}' ${partition}" || return 1
+    ssh root@"${ip}" "mtd verify '${remote_file}' ${partition}"
+}
+
+# 查看分区情况
+ssh root@192.168.1.1 "cat /proc/mtd"
+
 # 刷写 BL2 分区
-ssh root@192.168.1.1 "mtd erase BL2"
-ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin BL2"
-ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin BL2"
+flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin" --partition "BL2"
 
 # 刷写 FIP 分区
-ssh root@192.168.1.1 "mtd erase FIP"
-ssh root@192.168.1.1 "mtd write /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip FIP"
-ssh root@192.168.1.1 "mtd verify /tmp/openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip FIP"
+flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip" --partition "FIP"
 
 # 清除pstore防止启动到恢复模式（此步命令可跳过）
 ssh root@192.168.1.1 "rm -f /sys/fs/pstore/*"
