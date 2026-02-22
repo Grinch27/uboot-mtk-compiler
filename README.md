@@ -680,9 +680,6 @@ upload_file --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gm
 上传完成后，使用以下命令将 BL2 和 FIP 分区刷写，根据实际 cat /proc/mtd 显示的 BL2 和 FIP 实际名称进行调整（注意大小写）：
 
 ```bash
-# 清理旧ssh密钥
-ssh-keygen -R 192.168.1.1
-
 # 查看分区情况
 ssh root@192.168.1.1 "cat /proc/mtd"
 # dev:    size   erasesize  name
@@ -698,6 +695,11 @@ ssh root@192.168.1.1 "cat /proc/mtd"
 ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
 
 # 注意，请根据实际 cat /proc/mtd 显示的BL2和FIP实际名称进行调整（注意大小写）
+
+# 清理旧ssh密钥
+ssh-keygen -R '192.168.1.1'
+# 查看分区情况
+ssh root@192.168.1.1 "cat /proc/mtd"
 
 flash_mtd() {
     local ip="192.168.1.1"
@@ -725,15 +727,12 @@ flash_mtd() {
     ssh root@"${ip}" "mtd verify '${remote_file}' ${partition}"
 }
 
-# 查看分区情况
-ssh-keygen -R '192.168.1.1'
-ssh root@192.168.1.1 "cat /proc/mtd"
 
 # 刷写 BL2 分区
-flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin" --partition "BL2"
+flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin" --partition "bl2"
 
 # 刷写 FIP 分区
-flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip" --partition "FIP"
+flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip" --partition "fip"
 
 # 清除pstore防止启动到恢复模式（此步命令可跳过）
 ssh root@192.168.1.1 "rm -f /sys/fs/pstore/*"
