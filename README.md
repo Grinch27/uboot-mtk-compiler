@@ -691,15 +691,7 @@ ssh root@192.168.1.1 "cat /proc/mtd"
 # mtd5: 00200000 00020000 "config2"
 # mtd6: 07680000 00020000 "ubi"
 
-# 加载 mtd-rw 模块以启用写入功能
-ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
-
 # 注意，请根据实际 cat /proc/mtd 显示的BL2和FIP实际名称进行调整（注意大小写）
-
-# 清理旧ssh密钥
-ssh-keygen -R '192.168.1.1'
-# 查看分区情况
-ssh root@192.168.1.1 "cat /proc/mtd"
 
 flash_mtd() {
     local ip="192.168.1.1"
@@ -727,6 +719,13 @@ flash_mtd() {
     ssh root@"${ip}" "mtd verify '${remote_file}' ${partition}"
 }
 
+# 清理旧ssh密钥
+ssh-keygen -R '192.168.1.1'
+# 查看分区情况
+ssh root@192.168.1.1 "cat /proc/mtd"
+
+# 加载 mtd-rw 模块以启用写入功能
+ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
 
 # 刷写 BL2 分区
 flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin" --partition "bl2"
