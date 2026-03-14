@@ -62,7 +62,7 @@ on:
         description: "Runner Image"
         type: string
         required: false
-        default: "ubuntu-latest"
+        default: "ubuntu-slim"
   workflow_call:
     inputs:
       device_branch:
