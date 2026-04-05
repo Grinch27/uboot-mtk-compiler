@@ -88,11 +88,29 @@ jobs:
   build:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
     runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
+    permissions: write-all
     defaults:
       run:
         shell: bash
     container:
       image: ubuntu:devel
+      # 按官方文档允许的字段，尽量给满 GHA 可传递的容器运行权限
+      options: >-
+        --privileged
+        --user=0:0
+        --pid=host
+        --ipc=host
+        --uts=host
+        --cgroupns=host
+        --cap-add=ALL
+        --security-opt apparmor=unconfined
+        --security-opt seccomp=unconfined
+      volumes:
+        - /dev:/dev
+        - /sys:/sys:ro
+        - /sys/fs/cgroup:/sys/fs/cgroup
+        - /run/udev:/run/udev:ro
+        - /lib/modules:/lib/modules:ro
     env:
       DEBIAN_FRONTEND: noninteractive
       # ========= Toolchain Environment Variables ==========
