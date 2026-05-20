@@ -356,6 +356,8 @@ upload_file() {
         return 1
     fi
 }
+# 清理旧ssh密钥
+ssh-keygen -R 192.168.1.1
 # 示例 将文件上传至设备 /tmp 目录，并校验
 upload_file --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-preloader.bin"
 upload_file --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-bl31-uboot.fip"
@@ -424,7 +426,7 @@ flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-xiaomi_mi-router
 flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-xiaomi_mi-router-ax3000t-ubootmod-bl31-uboot.fip" --partition "FIP"
 
 # 清除pstore防止启动到恢复模式（此步命令可跳过）
-rm -f /sys/fs/pstore/*
+ssh root@192.168.1.1 "rm -f /sys/fs/pstore/*"
 
 ssh root@192.168.1.1 "reboot"
 ```
