@@ -58,11 +58,6 @@ on:
         type: string
         required: false
         default: ""
-      runner_image:
-        description: "Runner Image"
-        type: string
-        required: false
-        default: "ubuntu-slim"
   workflow_call:
     inputs:
       device_branch:
@@ -73,21 +68,32 @@ on:
         description: "key=value;key=value"
         type: string
         required: false
-      runner_image:
-        description: "Runner Image"
-        required: false
-        type: string
 
-run-name: U-Boot - ${{ inputs.device_branch || 'all' }}
+run-name: U-Boot Dev - ${{ inputs.device_branch || 'all' }}
 
 env:
   device_branch: ${{ inputs.device_branch || 'all' }}
   custom_env: ${{ inputs.custom_env || '' }}
 
 jobs:
+  runner-image:
+    name: Resolve Runner Image
+    runs-on: ubuntu-latest
+    outputs:
+      runner_image: ${{ steps.runner.outputs.runner_image }}
+    steps:
+      - name: Resolve runner image
+        id: runner
+        uses: Grinch27/github-actions/.github/actions/resolve-runner-image@main
+
+      - name: Check runner image
+        shell: bash
+        run: test -n "${{ steps.runner.outputs.runner_image }}"
+
   build:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
-    runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
+    needs: runner-image
+    runs-on: ${{ needs.runner-image.outputs.runner_image || 'ubuntu-latest' }}
     permissions: write-all
     defaults:
       run:
@@ -113,6 +119,7 @@ jobs:
         - /lib/modules:/lib/modules:ro
     env:
       DEBIAN_FRONTEND: noninteractive
+      FORCE_UNSAFE_CONFIGURE: "1"
       # ========= Toolchain Environment Variables ==========
       # ----- gcc -----
       gcc_purge: true
@@ -147,6 +154,10 @@ jobs:
       PATH_self: "/builder/self"
       MD_release: "/builder/release.md"
     steps:
+      - name: Load Custom Environment Variables
+        id: env-custom
+        uses: Grinch27/github-actions/.github/actions/input-custom@main
+
       - name: Docker Workspace All in One
         id: docker-workspace
         uses: Grinch27/github-actions/.github/actions/env-indocker@main
@@ -158,10 +169,10 @@ jobs:
           echo -e "Current working directory: $(pwd)"
 
           # Clone target repository: without --depth=1
-          git clone ${REPO_target} ${PATH_target} --single-branch --branch=${REPO_target_branch} 
+          git clone "${REPO_target}" "${PATH_target}" --single-branch --branch="${REPO_target_branch}"
           echo -e "REPO_target: [ ${REPO_target} ]\nBRANCH: [ ${REPO_target_branch} ]"
 
-          df -hT ${PWD}
+          df -hT "${PWD}"
 
       - name: Version of Target Repo
         id: git-rev
@@ -175,10 +186,10 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${REPO_self} ${PATH_self} --single-branch --depth=1 --branch=${REPO_self_branch}
+          git clone "${REPO_self}" "${PATH_self}" --single-branch --depth=1 --branch="${REPO_self_branch}"
           echo -e "REPO_self: [ ${REPO_self} ]\nBRANCH: [ ${REPO_self_branch} ]"
 
-          df -hT ${PWD}
+          df -hT "${PWD}"
 
       - name: Compile U-Boot Cycle
         id: compile
@@ -237,9 +248,9 @@ jobs:
             local ORIGINAL_DIR="$PWD"
 
             echo "Backup path: ${PATH_backup}"
-            mkdir -p ${PATH_backup}
-            cp -rf ${PATH_target} ${PATH_backup}
-            ls -al ${PATH_backup}
+            mkdir -p "${PATH_backup}"
+            cp -rf "${PATH_target}" "${PATH_backup}"
+            ls -al "${PATH_backup}"
 
             echo "Changing back to the original directory ${ORIGINAL_DIR}"
             cd "${ORIGINAL_DIR}"
@@ -285,12 +296,12 @@ jobs:
             echo -e "Current working directory: $(pwd)"
             echo -e "---------- Compile U-Boot of ${BOARD} ----------"
             SOC=${SOC} BOARD=${BOARD} MULTI_LAYOUT=${MULTI_LAYOUT} FIXED_MTDPARTS=${FIXED_MTDPARTS} ./build.sh
-            cp -rf ./output/* ${PATH_output}
+            cp -rf ./output/* "${PATH_output}"
           }
 
           # ===== main function =====
           main() {
-            mkdir -p ${PATH_output}
+            mkdir -p "${PATH_output}"
             backup_repo
 
             if [[ -z "${device}" || "${device,,}" == "all" ]]; then
@@ -317,8 +328,8 @@ jobs:
           echo -e "Current working directory: $(pwd)"
           # printf "Current working directory: %s\n" "$(pwd)"
 
-          MD_release_dir=$(dirname ${{ env.MD_release }})
-          mkdir -p ${MD_release_dir}
+          MD_release_dir=$(dirname "${{ env.MD_release }}")
+          mkdir -p "${MD_release_dir}"
           : > ${{ env.MD_release }}
 
           record_to_markdown() {
@@ -342,7 +353,7 @@ jobs:
           # sum_json_content=$(jq '.' "${{ env.metadata_sum_path }}")
           # record_to_markdown "sha256sum" "${sum_json_content}" "json"
 
-          cat ${{ env.MD_release }}
+          cat "${{ env.MD_release }}"
 
           echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
 
