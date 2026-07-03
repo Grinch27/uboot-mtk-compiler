@@ -5,6 +5,11 @@ permissions:
   contents: write
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-u-boot_indocker_dev.yml"
   repository_dispatch:
   workflow_dispatch:
     inputs:
@@ -69,7 +74,7 @@ on:
         type: string
         required: false
 
-run-name: U-Boot Dev - ${{ inputs.device_branch || 'all' }}
+run-name: U-Boot Dev - ${{ inputs.device_branch || 'push' }}
 
 env:
   device_branch: ${{ inputs.device_branch || 'all' }}
@@ -132,7 +137,7 @@ jobs:
         uses: Grinch27/github-actions/.github/actions/resolve-toolchain-version@main
 
   action:
-    name: ${{ needs.runner-image.outputs.runner_image }} - gcc-${{ needs.toolchain.outputs.gcc_version }}
+    name: ${{ needs.runner-image.outputs.runner_image }} - gcc-${{ needs.toolchain.outputs.gcc_version }} - ${{ inputs.device_branch }}
     needs:
       - runner-image
       - toolchain
@@ -189,7 +194,9 @@ jobs:
       - name: Docker Workspace All in One
         id: docker-workspace
         uses: Grinch27/github-actions/.github/actions/env-indocker@main
+
       # ========== General Environment Setup: End ==========
+
       - name: Clone Target Repository
         id: clone-target
         working-directory: ${{ env.PATH_build }}
