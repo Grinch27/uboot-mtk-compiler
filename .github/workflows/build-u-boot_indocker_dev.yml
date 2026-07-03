@@ -77,31 +77,32 @@ env:
 
 jobs:
   runner-image:
-    name: Resolve Runner Image
+    name: ubuntu-latest - runner-image
     runs-on: ubuntu-latest
     outputs:
-      runner_image: ${{ steps.runner.outputs.runner_image }}
+      runner_image: ${{ steps.resolve-runner-image.outputs.runner_image }}
     steps:
-      - name: Resolve runner image
-        id: runner
+      - name: Resolve runner-image
+        id: resolve-runner-image
         uses: Grinch27/github-actions/.github/actions/resolve-runner-image@main
 
-      - name: Check runner image
-        shell: bash
-        run: test -n "${{ steps.runner.outputs.runner_image }}"
-
-  build:
-    name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
+  toolchain:
+    name: ${{ needs.runner-image.outputs.runner_image }} - ubuntu:devel - toolchain
     needs: runner-image
-    runs-on: ${{ needs.runner-image.outputs.runner_image || 'ubuntu-latest' }}
-    permissions: write-all
+    runs-on: ${{ needs.runner-image.outputs.runner_image }}
+    outputs:
+      gcc_version: ${{ steps.resolve-toolchain.outputs.gcc_version }}
+      clang_version: ${{ steps.resolve-toolchain.outputs.clang_version }}
+      jdk_version: ${{ steps.resolve-toolchain.outputs.jdk_version }}
+      custom_env: ${{ steps.resolve-toolchain.outputs.custom_env }}
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash
     container:
-      image: ubuntu:devel
-      # 按官方文档允许的字段，尽量给满 GHA 可传递的容器运行权限
-      options: >-
+      image: &container_image ubuntu:devel
+      options: &container_options >-
         --privileged
         --user=0:0
         --pid=host
@@ -111,12 +112,39 @@ jobs:
         --cap-add=ALL
         --security-opt apparmor=unconfined
         --security-opt seccomp=unconfined
-      volumes:
+        --init
+        --pids-limit=-1
+        --shm-size=12g
+        --ulimit nofile=1048576:1048576
+      volumes: &container_volumes
         - /dev:/dev
-        - /sys:/sys:ro
-        - /sys/fs/cgroup:/sys/fs/cgroup
+        - /sys:/sys:rw
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
         - /run/udev:/run/udev:ro
         - /lib/modules:/lib/modules:ro
+        - /var/run/docker.sock:/var/run/docker.sock
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      FORCE_UNSAFE_CONFIGURE: "1"
+    steps:
+      - name: Resolve toolchain versions
+        id: resolve-toolchain
+        uses: Grinch27/github-actions/.github/actions/resolve-toolchain-version@main
+
+  action:
+    name: ${{ needs.runner-image.outputs.runner_image }} - gcc-${{ needs.toolchain.outputs.gcc_version }}
+    needs:
+      - runner-image
+      - toolchain
+    runs-on: ${{ needs.runner-image.outputs.runner_image }}
+    permissions: write-all
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: *container_image
+      options: *container_options
+      volumes: *container_volumes
     env:
       DEBIAN_FRONTEND: noninteractive
       FORCE_UNSAFE_CONFIGURE: "1"
