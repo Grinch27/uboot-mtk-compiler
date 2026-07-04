@@ -85,16 +85,16 @@ jobs:
     name: ubuntu-latest - runner-image
     runs-on: ubuntu-latest
     outputs:
-      runner_image: ${{ steps.resolve-runner-image.outputs.runner_image }}
+      RUNNER_IMAGE: ${{ steps.resolve-runner-image.outputs.RUNNER_IMAGE }}
     steps:
       - name: Resolve runner-image
         id: resolve-runner-image
         uses: Grinch27/github-actions/.github/actions/resolve-runner-image@main
 
   toolchain:
-    name: ${{ needs.runner-image.outputs.runner_image }} - ubuntu:devel - toolchain
+    name: ${{ needs.runner-image.outputs.RUNNER_IMAGE }} - ubuntu:devel - toolchain
     needs: runner-image
-    runs-on: ${{ needs.runner-image.outputs.runner_image }}
+    runs-on: ${{ needs.runner-image.outputs.RUNNER_IMAGE }}
     outputs:
       gcc_version: ${{ steps.resolve-toolchain.outputs.gcc_version }}
       clang_version: ${{ steps.resolve-toolchain.outputs.clang_version }}
@@ -137,11 +137,11 @@ jobs:
         uses: Grinch27/github-actions/.github/actions/resolve-toolchain-version@main
 
   action:
-    name: ${{ needs.runner-image.outputs.runner_image }} - gcc-${{ needs.toolchain.outputs.gcc_version }} - ${{ inputs.device_branch }}
+    name: ${{ needs.runner-image.outputs.RUNNER_IMAGE }} - gcc-${{ needs.toolchain.outputs.gcc_version }} - ${{ inputs.device_branch }}
     needs:
       - runner-image
       - toolchain
-    runs-on: ${{ needs.runner-image.outputs.runner_image }}
+    runs-on: ${{ needs.runner-image.outputs.RUNNER_IMAGE }}
     permissions: write-all
     defaults:
       run:
