@@ -1,0 +1,462 @@
+name: U-Boot (All in One Docker)
+
+# GitHub Actions workflow syntax reference:
+# https://docs.github.com/zh/actions/reference/workflows-and-actions/workflow-syntax
+# https://docs.github.com/zh/actions/reference/workflows-and-actions/metadata-syntax#runs-for-composite-actions
+# https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations#yaml-anchors-and-aliases
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/uboot_allinone.yml"
+  schedule:
+    # Run every day at 20:00 UTC.
+    - cron: "0 20 * * *"
+      timezone: "Etc/UTC"
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      device_branch:
+        description: "Select device branch"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - 360t7
+          - livinet_zr-3020
+          - cetron_ct3003
+          - jcg_q30
+          - konka_komi-a31
+          - wr30u
+          - imou_lc-hx3001
+          - clt_r30b1
+          - abt_asr3000
+          - cmcc_a10
+          - cmcc_rax3000m
+          - cmcc_rax3000m-emmc
+          - h3c_magic-nx30-pro
+          - ax3000t
+          - redmi_ax6000
+          - tplink_tl-xdr608x
+          - ruijie_rg-x60-pro
+          - jdcloud_re-cp-03
+          - glinet_gl-mt6000
+          - nokia_ea0326gmp
+          - ruijie_rg-x30e
+          - ruijie_rg-x30e-pro
+          - tplink_tl-xtr8488
+          - newland_nl-wr8103
+          - honor_fur-602
+          - newland_nl-wr9103
+          - cmcc_xr30
+          - cmcc_xr30-emmc
+          - zyxel_ex5700
+          - openembed_som7981
+          - glinet_gl-mt3000
+          - glinet_gl-mt2500
+          - ax3000t_an8855
+          - ruijie_rg-x60
+          - cudy_tr3000-v1
+          - netcore_n60
+          - netcore_n60-pro
+          - ruijie_ew-6000gx-pro
+      custom_env:
+        description: "key=value;key=value"
+        type: string
+        required: false
+        default: ""
+
+run-name: >-
+  Compile U-Boot Docker -
+  ${{ github.event_name }} -
+  ${{ github.ref_name }} -
+  ${{ inputs.device_branch || github.event.client_payload.device_branch || 'all' }}
+
+permissions: write-all
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  DEBCONF_NONINTERACTIVE_SEEN: "true"
+  APT_LISTCHANGES_FRONTEND: none
+  NEEDRESTART_MODE: a
+  FORCE_UNSAFE_CONFIGURE: "1"
+  TZ: Etc/UTC
+  DISPLAY_TZ: Etc/UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  # Git
+  GIT_TERMINAL_PROMPT: "0"
+  # Docker/BuildKit
+  DOCKER_BUILDKIT: "1"
+  COMPOSE_DOCKER_CLI_BUILD: "1"
+  # Workflow inputs
+  device_branch: "${{ inputs.device_branch || github.event.client_payload.device_branch || 'all' }}"
+  custom_env: "${{ inputs.custom_env || github.event.client_payload.custom_env || '' }}"
+
+jobs:
+  runner-image:
+    name: ubuntu-latest - runner-image
+    runs-on: &step_image ubuntu-latest
+    outputs:
+      RUNNER_IMAGE: ${{ steps.resolve-runner-image.outputs.RUNNER_IMAGE }}
+    steps:
+      - name: Resolve runner-image
+        id: resolve-runner-image
+        uses: Grinch27/github-actions/.github/actions/resolve-runner-image@main
+
+  toolchain:
+    name: ${{ needs.runner-image.outputs.RUNNER_IMAGE }} - ubuntu:devel - toolchain
+    needs: runner-image
+    runs-on: ${{ needs.runner-image.outputs.RUNNER_IMAGE }}
+    container:
+      image: &container_image ubuntu:devel
+      options: &container_options >-
+        --privileged
+        --user=0:0
+        --pid=host
+        --ipc=host
+        --uts=host
+        --cgroupns=host
+        --cap-add=ALL
+        --security-opt apparmor=unconfined
+        --security-opt seccomp=unconfined
+        --init
+        --pids-limit=-1
+        --shm-size=12g
+        --ulimit nofile=1048576:1048576
+      volumes: &container_volumes
+        - /dev:/dev
+        - /sys:/sys:rw
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        - /run/udev:/run/udev:ro
+        - /lib/modules:/lib/modules:ro
+        - /var/run/docker.sock:/var/run/docker.sock
+    outputs:
+      gcc_version: ${{ steps.resolve-toolchain.outputs.gcc_version }}
+      clang_version: ${{ steps.resolve-toolchain.outputs.clang_version }}
+      jdk_version: ${{ steps.resolve-toolchain.outputs.jdk_version }}
+      custom_env: ${{ steps.resolve-toolchain.outputs.custom_env }}
+    steps:
+      - name: Resolve toolchain versions
+        id: resolve-toolchain
+        uses: Grinch27/github-actions/.github/actions/resolve-toolchain-version@main
+
+  action:
+    name: >-
+      ${{ needs.runner-image.outputs.RUNNER_IMAGE }} -
+      gcc-${{ needs.toolchain.outputs.gcc_version }} -
+      ${{ inputs.device_branch || github.event.client_payload.device_branch || 'all' }}
+    needs:
+      - runner-image
+      - toolchain
+    runs-on: ${{ needs.runner-image.outputs.RUNNER_IMAGE }}
+    container:
+      image: *container_image
+      options: *container_options
+      volumes: *container_volumes
+    env:
+      # ========= Toolchain Environment Variables ==========
+      # ----- gcc -----
+      gcc_purge: true
+      gcc_install: true
+      gcc_switch: false
+      gcc_version: ""
+      gcc_aarch64: true
+      # ----- clang -----
+      clang_purge: false
+      clang_install: false
+      clang_switch: false
+      clang_version: ""
+      # ----- jdk -----
+      jdk_purge: false
+      jdk_install: false
+      jdk_switch: false
+      jdk_version: ""
+      # ----- docker -----
+      docker_install: false
+      qemu_install: false
+      # ========= Workspace Environment Variables ==========
+      # ----- Repository -----
+      REPO_target: "https://github.com/hanwckf/bl-mt798x"
+      REPO_target_branch: "master"
+      REPO_self: "https://github.com/${{ github.repository }}"
+      REPO_self_branch: "main"
+      # ----- Build Path -----
+      PATH_build: "/builder"
+      PATH_target: "/builder/target"
+      PATH_output: "/builder/output"
+      PATH_backup: "/builder/backup"
+      PATH_self: "/builder/self"
+      MD_release: "/builder/release.md"
+    steps:
+      # ========== General Environment Setup: Start ==========
+      - name: Load Custom Environment Variables
+        id: env-custom
+        uses: Grinch27/github-actions/.github/actions/input-custom@main
+
+      - name: Docker Workspace All in One
+        id: docker-workspace
+        uses: Grinch27/github-actions/.github/actions/env-indocker@main
+      # ========== General Environment Setup: End ==========
+
+      - name: Clone Target Repository
+        id: clone-target
+        working-directory: ${{ env.PATH_build }}
+        run: |
+          printf 'Current working directory: %s\n' "$(pwd)"
+
+          : "${REPO_target:?REPO_target is empty}"
+          : "${REPO_target_branch:?REPO_target_branch is empty}"
+          : "${PATH_target:?PATH_target is empty}"
+
+          rm -rf -- "${PATH_target}"
+          git clone \
+            --single-branch \
+            --branch="${REPO_target_branch}" \
+            "${REPO_target}" \
+            "${PATH_target}"
+
+          printf 'REPO_target: [ %s ]\nBRANCH: [ %s ]\n' \
+            "${REPO_target}" \
+            "${REPO_target_branch}"
+          df -hT "${PATH_build}"
+
+      - name: Version of Target Repo
+        id: git-rev
+        uses: Grinch27/github-actions/.github/actions/git-rev@main
+        with:
+          path_target: ${{ env.PATH_target }}
+
+      - name: Clone self
+        id: clone-self
+        working-directory: /
+        run: |
+          printf 'Current working directory: %s\n' "$(pwd)"
+
+          : "${REPO_self:?REPO_self is empty}"
+          : "${REPO_self_branch:?REPO_self_branch is empty}"
+          : "${PATH_self:?PATH_self is empty}"
+
+          rm -rf -- "${PATH_self}"
+          git clone \
+            --single-branch \
+            --depth=1 \
+            --branch="${REPO_self_branch}" \
+            "${REPO_self}" \
+            "${PATH_self}"
+
+          printf 'REPO_self: [ %s ]\nBRANCH: [ %s ]\n' \
+            "${REPO_self}" \
+            "${REPO_self_branch}"
+          df -hT "${PATH_build}"
+
+      - name: Compile U-Boot Cycle
+        id: compile
+        env:
+          device: ${{ env.device_branch }}
+        working-directory: ${{ env.PATH_build }}
+        run: |
+          printf 'Current working directory: %s\n' "$(pwd)"
+
+          # [BOARD] = SOC | MULTI_LAYOUT | FIXED_MTDPARTS
+          declare -A BOARD_PARAMS=(
+            ["360t7"]="mt7981|0|0,1" # 360 T7/T7U/T7M
+            ["livinet_zr-3020"]="mt7981|0|0,1" # ZR3020
+            ["cetron_ct3003"]="mt7981|0|0,1" # Cetron CT3003
+            ["jcg_q30"]="mt7981|0|0,1" # JCG Q30 PRO
+            ["konka_komi-a31"]="mt7981|0|0,1" # 康佳 KOMI-A31
+            ["wr30u"]="mt7981|0,1|0,1" # 小米 WR30U/T/M [with MULTI_LAYOUT]
+            ["imou_lc-hx3001"]="mt7981|0|0,1" # 乐橙 LC-HX3001
+            ["clt_r30b1"]="mt7981|0,1|0,1" # 创联腾 CLT-R30B1 [with MULTI_LAYOUT]
+            ["abt_asr3000"]="mt7981|0|0,1" # 安博通 ABT ASR3000
+            ["cmcc_a10"]="mt7981|0|0,1" # CMCC A10
+            ["cmcc_rax3000m"]="mt7981|0|0,1" # CMCC RAX3000M (SPI-NAND)
+            ["cmcc_rax3000m-emmc"]="mt7981|0|0,1" # CMCC RAX3000M (EMMC)
+            ["h3c_magic-nx30-pro"]="mt7981|0|0,1" # H3C NX30 Pro
+            ["ax3000t"]="mt7981|0,1|0,1" # 小米 AX3000T [with MULTI_LAYOUT]
+            ["redmi_ax6000"]="mt7986|0,1|0,1" # 红米 AX6000 [with MULTI_LAYOUT]
+            ["tplink_tl-xdr608x"]="mt7986|0|0,1" # TP-LINK XDR4288/6086/6088
+            ["ruijie_rg-x60-pro"]="mt7986|0,1|0,1" # Ruijie RG-X60 Pro [with MULTI_LAYOUT]
+            ["jdcloud_re-cp-03"]="mt7986|0|0,1" # JDCloud RE-CP-03
+            ["glinet_gl-mt6000"]="mt7986|0|0,1" # GL.iNet GL-MT6000
+            ["nokia_ea0326gmp"]="mt7981|0|1,0" # Nokia EA0326GMP with and without FIXED_MTDPARTS
+            ["ruijie_rg-x30e"]="mt7981|0,1|0,1" # Ruijie RG-X30E [with MULTI_LAYOUT]
+            ["ruijie_rg-x30e-pro"]="mt7981|0,1|0,1" # Ruijie RG-X30E Pro [with MULTI_LAYOUT]
+            ["tplink_tl-xtr8488"]="mt7986|0|0,1" # TP-Link TL-XTR8488
+            ["newland_nl-wr8103"]="mt7981|0,1|0,1" # Newland NL-WR8103/MR3000D-CIq
+            ["honor_fur-602"]="mt7981|0,1|0,1" # HONOR FUR-602/603
+            ["newland_nl-wr9103"]="mt7981|0,1|0,1" # Newland NL-WR9103 [with MULTI_LAYOUT]
+            ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
+            ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
+            ["zyxel_ex5700"]="mt7986|0|0,1" # Zyxel EX5700
+            ["openembed_som7981"]="mt7981|0|0,1" # OpenEmbed SOM7981
+            ["glinet_gl-mt3000"]="mt7981|0|0,1" # GL.iNet GL-MT3000
+            ["glinet_gl-mt2500"]="mt7981|0|0,1" # GL.iNet GL-MT2500
+            ["ax3000t_an8855"]="mt7981|0,1|0,1" # Xiaomi AX3000T AN8855 variant
+            ["ruijie_rg-x60"]="mt7986|0,1|0,1" # Ruijie RG-X60 [with MULTI_LAYOUT]
+            ["cudy_tr3000-v1"]="mt7981|0|0,1" # Cudy TR3000 v1
+            ["netcore_n60"]="mt7986|0|0,1" # Netcore N60
+            ["netcore_n60-pro"]="mt7986|0|0,1" # Netcore N60 Pro
+            ["ruijie_ew-6000gx-pro"]="mt7986|0,1|0,1" # Ruijie EW-6000GX Pro
+          )
+
+          backup_repo() {
+            local original_dir="${PWD}"
+            local backup_target="${PATH_backup}/$(basename "${PATH_target}")"
+
+            printf 'Backup path: %s\n' "${backup_target}"
+            mkdir -p "${PATH_backup}"
+            rm -rf -- "${backup_target}"
+            cp -a "${PATH_target}" "${PATH_backup}/"
+            ls -al "${PATH_backup}"
+            cd "${original_dir}"
+          }
+
+          compile_device() {
+            local selected_device="$1"
+            local params="$2"
+            local -a parsed_params
+
+            IFS='|' read -r -a parsed_params <<< "${params}"
+            split_device_params \
+              "${selected_device}" \
+              "${parsed_params[0]}" \
+              "${parsed_params[@]:1}"
+          }
+
+          split_device_params() {
+            local board="$1"
+            local soc="$2"
+            local -a other_params=("${@:3}")
+            local multi_layout_values="${other_params[0]:-0}"
+            local fixed_mtdparts_values="${other_params[1]:-0}"
+            local -a multi_layout_array
+            local -a fixed_mtdparts_array
+
+            IFS=',' read -r -a multi_layout_array <<< "${multi_layout_values}"
+            IFS=',' read -r -a fixed_mtdparts_array <<< "${fixed_mtdparts_values}"
+
+            for multi_layout in "${multi_layout_array[@]}"; do
+              for fixed_mtdparts in "${fixed_mtdparts_array[@]}"; do
+                cd "${PATH_build}"
+                rm -rf -- "${PATH_target}"
+                cp -a \
+                  "${PATH_backup}/$(basename "${PATH_target}")" \
+                  "${PATH_build}/"
+                cd "${PATH_target}"
+                exec_build_sh \
+                  "${soc}" \
+                  "${board}" \
+                  "${multi_layout}" \
+                  "${fixed_mtdparts}"
+              done
+            done
+          }
+
+          exec_build_sh() {
+            local soc="$1"
+            local board="$2"
+            local multi_layout="$3"
+            local fixed_mtdparts="$4"
+
+            printf 'Current working directory: %s\n' "$(pwd)"
+            printf '%s\n' "---------- Compile U-Boot of ${board} ----------"
+            SOC="${soc}" \
+              BOARD="${board}" \
+              MULTI_LAYOUT="${multi_layout}" \
+              FIXED_MTDPARTS="${fixed_mtdparts}" \
+              ./build.sh
+
+            shopt -s nullglob
+            local -a output_files=(./output/*)
+            if ((${#output_files[@]} == 0)); then
+              printf 'No output files generated for %s.\n' "${board}" >&2
+              return 1
+            fi
+            cp -a "${output_files[@]}" "${PATH_output}/"
+          }
+
+          main() {
+            : "${device:?device is empty}"
+            mkdir -p "${PATH_output}"
+            backup_repo
+
+            if [[ "${device,,}" == "all" ]]; then
+              printf 'Compiling for all devices.\n'
+              for board in "${!BOARD_PARAMS[@]}"; do
+                compile_device "${board}" "${BOARD_PARAMS[${board}]}"
+              done
+            elif [[ -n "${BOARD_PARAMS[${device}]:-}" ]]; then
+              printf 'Compiling for device: %s\n' "${device}"
+              compile_device "${device}" "${BOARD_PARAMS[${device}]}"
+            else
+              printf 'Invalid device: %s\n' "${device}" >&2
+              return 1
+            fi
+          }
+
+          main "$@"
+
+      - name: Generate release.md
+        id: release-md
+        working-directory: ${{ env.PATH_target }}
+        run: |
+          printf 'Current working directory: %s\n' "$(pwd)"
+
+          : "${MD_release:?MD_release is empty}"
+          md_release_dir="$(dirname "${MD_release}")"
+          mkdir -p "${md_release_dir}"
+          : > "${MD_release}"
+
+          record_to_markdown() {
+            local title="$1"
+            local content="$2"
+            local code_block="${3:-}"
+            local format='\n### %s\n%s\n'
+
+            if [[ -n "${code_block}" ]]; then
+              format='\n### %s\n\n<details>\n<summary>%s</summary>\n\n```%s\n%s\n```\n\n</details>\n'
+              printf "${format}" \
+                "${title}" \
+                "${title}" \
+                "${code_block}" \
+                "${content}" >> "${MD_release}"
+            else
+              printf "${format}" "${title}" "${content}" >> "${MD_release}"
+            fi
+          }
+
+          build_time_utc="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          release_timestamp="$(date -u +'%Y%m%dT%H%M%SZ')"
+
+          record_to_markdown "Device Scope" "- [x] ${device_branch}"
+          record_to_markdown "Timestamp (UTC)" "- [x] ${build_time_utc}"
+          record_to_markdown "Repository" "- [x] ${REPO_target}"
+          record_to_markdown "Repository Branch" "- [x] ${REPO_target_branch}"
+          record_to_markdown "Target Revision" "- [x] ${{ steps.git-rev.outputs.git_desc }}"
+
+          cat "${MD_release}"
+          printf 'timestamp=%s\n' "${release_timestamp}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload to Release
+        id: release
+        uses: ncipollo/release-action@main
+        env:
+          timestamp: ${{ steps.release-md.outputs.timestamp }}
+          tag_release: ${{ steps.git-rev.outputs.git_desc }}
+        with:
+          name: "${{ env.timestamp }}_${{ env.tag_release }}_${{ env.device_branch }}"
+          tag: "${{ env.tag_release }}"
+          artifacts: "${{ env.PATH_output }}/*"
+          allowUpdates: true
+          removeArtifacts: false
+          replacesArtifacts: true
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          bodyFile: "${{ env.MD_release }}"
