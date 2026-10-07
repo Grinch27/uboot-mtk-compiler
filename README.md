@@ -674,6 +674,7 @@ upload_file() {
         return 1
     fi
 }
+ssh-keygen -R 192.168.1.1
 # 示例 将文件上传至设备 /tmp 目录，并校验
 upload_file --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin"
 upload_file --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip"
@@ -730,8 +731,12 @@ ssh root@192.168.1.1 "cat /proc/mtd"
 ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
 
 # 刷写 BL2 分区
-flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin" --partition "bl2"
+flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin" --partition "BL2"
+# 刷写 FIP 分区
+flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip" --partition "FIP"
 
+# 刷写 BL2 分区
+flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin" --partition "bl2"
 # 刷写 FIP 分区
 flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-bl31-uboot.fip" --partition "fip"
 
