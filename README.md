@@ -566,7 +566,8 @@ upload_file() {
     fi
 }
 # 示例 将文件上传至设备 /tmp 目录，并校验
-upload_file --file "./mt7981_nokia_ea0326gmp-fip-fixed-parts.bin"
+ssh-keygen -R 192.168.10.1
+upload_file --file "./mt7981_nokia_ea0326gmp-fip-fixed-parts.bin" --ip "192.168.10.1"
 ```
 
 上传完成后，使用以下命令将 FIP 分区刷写：
@@ -574,6 +575,8 @@ upload_file --file "./mt7981_nokia_ea0326gmp-fip-fixed-parts.bin"
 !!! 注意请先使用 `ssh root@192.168.10.1 'cat /proc/mtd'` 检查 `FIP` 分区名称大小写情况: 一般为 `FIP` 或 `fip`，请在命令中保持名称 `FIP` 或 `fip` 与对应实际一致 !!!
 
 ```bash
+# 查看分区情况
+ssh root@192.168.10.1 'cat /proc/mtd'
 # 刷写 FIP 分区
 flash_mtd() {
     local ip="192.168.10.1"
@@ -721,14 +724,12 @@ flash_mtd() {
     ssh root@"${ip}" "mtd write '${remote_file}' ${partition}" || return 1
     ssh root@"${ip}" "mtd verify '${remote_file}' ${partition}"
 }
-
 # 清理旧ssh密钥
 ssh-keygen -R '192.168.1.1'
-# 查看分区情况
-ssh root@192.168.1.1 "cat /proc/mtd"
-
 # 加载 mtd-rw 模块以启用写入功能
 ssh root@192.168.1.1 "insmod mtd-rw i_want_a_brick=1"
+# 查看分区情况
+ssh root@192.168.1.1 "cat /proc/mtd"
 
 # 刷写 BL2 分区
 flash_mtd --ip "192.168.1.1" --file "./openwrt-mediatek-filogic-nokia_ea0326gmp-preloader.bin" --partition "BL2"
