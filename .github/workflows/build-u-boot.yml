@@ -58,7 +58,7 @@ on:
         description: "Runner Image"
         type: string
         required: false
-        default: "ubuntu-latest"
+        default: ""
   workflow_call:
     inputs:
       device_branch:
@@ -81,9 +81,22 @@ env:
   custom_env: ${{ inputs.custom_env || '' }}
 
 jobs:
+  runner-image:
+    name: ubuntu-latest - runner-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      RUNNER_IMAGE: ${{ steps.resolve-runner-image.outputs.RUNNER_IMAGE }}
+    steps:
+      - name: Resolve runner-image
+        id: resolve-runner-image
+        uses: Grinch27/github-actions/.github/actions/resolve-runner-image@main
+
   build:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
-    runs-on: ${{ inputs.runner_image || 'ubuntu-latest' }}
+    needs: runner-image
+    runs-on: ${{ inputs.runner_image || needs.runner-image.outputs.RUNNER_IMAGE }}
     env:
       app_branch: "uboot"
       DEBIAN_FRONTEND: noninteractive
