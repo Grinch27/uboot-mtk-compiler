@@ -11,8 +11,7 @@ on:
       - .github/workflows/ci-infrastructure-smoke.yml
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: write-all
 
 defaults:
   run:
