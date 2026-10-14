@@ -1,8 +1,7 @@
 name: (Docker) Build U-Boot (Dev)
 # ${{ github.workspace }} - > ${{ env.GITHUB_WORKSPACE }}
 
-permissions:
-  contents: write
+permissions: write-all
 
 on:
   push:
@@ -100,8 +99,6 @@ jobs:
       clang_version: ${{ steps.resolve-toolchain.outputs.clang_version }}
       jdk_version: ${{ steps.resolve-toolchain.outputs.jdk_version }}
       custom_env: ${{ steps.resolve-toolchain.outputs.custom_env }}
-    permissions:
-      contents: read
     defaults:
       run:
         shell: bash
@@ -142,7 +139,6 @@ jobs:
       - runner-image
       - toolchain
     runs-on: ${{ needs.runner-image.outputs.RUNNER_IMAGE }}
-    permissions: write-all
     defaults:
       run:
         shell: bash
