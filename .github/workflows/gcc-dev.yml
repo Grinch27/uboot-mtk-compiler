@@ -19,12 +19,12 @@ run-name: GCC Switch to ${{ inputs.gcc_version || '14' }}
 env:
   gcc_version: ${{ inputs.gcc_version || '14' }}
 
+permissions: write-all
+
 jobs:
   runner-image:
     name: ubuntu-latest - runner-image
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     outputs:
       RUNNER_IMAGE: ${{ steps.resolve-runner-image.outputs.RUNNER_IMAGE }}
     steps:
