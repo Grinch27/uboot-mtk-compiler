@@ -1,8 +1,7 @@
 name: (Docker) Build U-Boot
 # ${{ github.workspace }} - > ${{ env.GITHUB_WORKSPACE }}
 
-permissions:
-  contents: write
+permissions: write-all
 
 on:
   repository_dispatch:
@@ -110,8 +109,6 @@ jobs:
   runner-image:
     name: ubuntu-latest - runner-image
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     outputs:
       RUNNER_IMAGE: ${{ steps.resolve-runner-image.outputs.RUNNER_IMAGE }}
     steps:
@@ -123,8 +120,6 @@ jobs:
     name: Build U-Boot - ${{ inputs.device_branch || 'all' }}
     needs: runner-image
     runs-on: ${{ inputs.runner_image || needs.runner-image.outputs.RUNNER_IMAGE }}
-    permissions:
-      contents: write
     defaults:
       run:
         shell: bash
