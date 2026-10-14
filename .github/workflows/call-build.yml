@@ -11,16 +11,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  runner-image:
+    name: ubuntu-latest - runner-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      RUNNER_IMAGE: ${{ steps.resolve-runner-image.outputs.RUNNER_IMAGE }}
+    steps:
+      - name: Resolve runner-image
+        id: resolve-runner-image
+        uses: Grinch27/github-actions/.github/actions/resolve-runner-image@main
+
   uboot:
     name: ${{ matrix.workflows_inputs.device_branch }}
+    needs: runner-image
     # uses: ./.github/workflows/build-u-boot.yml
     uses: ./.github/workflows/build-u-boot_indocker.yml
     strategy:
       fail-fast: false
       matrix:
-        runner_image: ["ubuntu-latest"]
         workflows_inputs:
           - device_branch: "all"
     with:
-      runner_image: ${{ matrix.runner_image }}
+      runner_image: ${{ needs.runner-image.outputs.RUNNER_IMAGE }}
       device_branch: ${{ matrix.workflows_inputs.device_branch }}
