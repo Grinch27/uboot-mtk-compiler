@@ -63,6 +63,11 @@ on:
         type: string
         required: false
         default: ""
+      publish_release:
+        description: "Publish GitHub Release instead of a test artifact"
+        type: boolean
+        required: false
+        default: false
   workflow_call:
     inputs:
       device_branch:
@@ -77,6 +82,11 @@ on:
         description: "Runner Image"
         required: false
         type: string
+      publish_release:
+        description: "Publish GitHub Release"
+        type: boolean
+        required: false
+        default: true
 
 run-name: U-Boot - ${{ inputs.device_branch || 'all' }}
 
@@ -421,7 +431,8 @@ jobs:
 
           echo "timestamp=$(date +"%y%mw%V")" | tee -a ${GITHUB_OUTPUT}
 
-      - name: Upload OpenWrt to Release
+      - name: Upload U-Boot to Release
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_release }}
         id: release
         uses: ncipollo/release-action@main
         env:
@@ -436,6 +447,15 @@ jobs:
           removeArtifacts: false
           replacesArtifacts: true
           token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Upload test artifacts
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish_release }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: uboot-test-${{ inputs.device_branch || 'all' }}
+          path: ${{ env.PATH_output }}/*
+          if-no-files-found: error
+          retention-days: 1
 
       # - name: Setup output
       #   id: output
