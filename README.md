@@ -4,6 +4,19 @@ Github Actions for u-boot complie targets hanwckf/bl-mt798x.
 
 本项目旨在将 u-boot 编译环境部署到 Github Actions 上，主要面向 mt7981 和 mt7986 平台，提供自动化的编译流程。
 
+## GitHub Actions 构建
+
+唯一维护的工作流：[U-Boot (All in One Docker)](.github/workflows/uboot_allinone.yml)。
+支持定时构建、手动构建及 repository_dispatch。每日 UTC 20:00 全量构建并发布 Release；
+修改工作流的 push 事件仅构建 `clt_r30b1` 回归测试，不更新 Release。
+手动触发默认将输出上传为短期 Actions Artifact；只有显式勾选
+`publish_release` 才发布正式 Release。repository_dispatch 同样仅在
+`client_payload.publish_release=true` 时发布。
+
+当前构建容器采用 `ubuntu:26.04`，保留最新 Runner 解析和动态工具链版本管理，
+以使用 OpenSSL 3 兼容当前上游 U-Boot 的 ENGINE host tools；OpenSSL 4
+Provider API 尚未移植。每次发布和测试均生成 `SHA256SUMS`，构建结果不代表实机启动验证。
+
 ## 从 hanwckf/bl-mt798x 过渡到 OpenWrt U-Boot layout
 
 原有的 u-boot 编译环境基于 hanwckf/bl-mt798x 项目。随着 OpenWrt 对 mt7981 和 mt7986 平台的支持日益完善，建议使用者迁移到 OpenWrt 的 u-boot，以获得更好的维护和更新支持。

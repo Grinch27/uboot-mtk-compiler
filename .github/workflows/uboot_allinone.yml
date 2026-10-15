@@ -68,12 +68,17 @@ on:
         type: string
         required: false
         default: ""
+      publish_release:
+        description: "Publish a verified build to GitHub Releases (manual only)"
+        type: boolean
+        required: false
+        default: false
 
 run-name: >-
   Compile U-Boot Docker -
   ${{ github.event_name }} -
   ${{ github.ref_name }} -
-  ${{ inputs.device_branch || github.event.client_payload.device_branch || 'all' }}
+  ${{ github.event_name == 'push' && 'clt_r30b1' || inputs.device_branch || github.event.client_payload.device_branch || 'all' }}
 
 permissions: write-all
 
@@ -97,7 +102,10 @@ env:
   DOCKER_BUILDKIT: "1"
   COMPOSE_DOCKER_CLI_BUILD: "1"
   # Workflow inputs
-  device_branch: "${{ inputs.device_branch || github.event.client_payload.device_branch || 'all' }}"
+  # A workflow edit runs a single-board, non-publishing regression test.
+  device_branch: "${{ github.event_name == 'push' && 'clt_r30b1' || inputs.device_branch || github.event.client_payload.device_branch || 'all' }}"
+  # Scheduled builds publish; manual/dispatch builds publish only when requested.
+  publish_release: "${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true) || (github.event_name == 'repository_dispatch' && github.event.client_payload.publish_release == true) }}"
   custom_env: "${{ inputs.custom_env || github.event.client_payload.custom_env || '' }}"
 
 jobs:
@@ -112,11 +120,11 @@ jobs:
         uses: Grinch27/github-actions/.github/actions/resolve-runner-image@main
 
   toolchain:
-    name: ${{ needs.runner-image.outputs.RUNNER_IMAGE }} - ubuntu:devel - toolchain
+    name: ${{ needs.runner-image.outputs.RUNNER_IMAGE }} - ubuntu:26.04 - toolchain
     needs: runner-image
     runs-on: ${{ needs.runner-image.outputs.RUNNER_IMAGE }}
     container:
-      image: &container_image ubuntu:devel
+      image: &container_image ubuntu:26.04
       options: &container_options >-
         --privileged
         --user=0:0
@@ -206,6 +214,18 @@ jobs:
         uses: Grinch27/github-actions/.github/actions/env-indocker@main
       # ========== General Environment Setup: End ==========
 
+      - name: Verify host OpenSSL compatibility
+        run: |
+          set -euo pipefail
+          openssl version
+          libssl_version="$(dpkg-query -W -f='${Version}' libssl-dev)"
+          printf 'libssl-dev: %s\n' "${libssl_version}"
+          libssl_major="${libssl_version%%.*}"
+          if [[ ! "${libssl_major}" =~ ^[0-9]+$ ]] || (( libssl_major != 3 )); then
+            echo "::error::This U-Boot source requires OpenSSL 3 host headers and libraries; found ${libssl_version}." >&2
+            exit 1
+          fi
+
       - name: Clone Target Repository
         id: clone-target
         working-directory: ${{ env.PATH_build }}
@@ -263,6 +283,7 @@ jobs:
           device: ${{ env.device_branch }}
         working-directory: ${{ env.PATH_build }}
         run: |
+          set -euo pipefail
           printf 'Current working directory: %s\n' "$(pwd)"
 
           # [BOARD] = SOC | MULTI_LAYOUT | FIXED_MTDPARTS
@@ -278,14 +299,14 @@ jobs:
             ["abt_asr3000"]="mt7981|0|0,1" # 安博通 ABT ASR3000
             ["cmcc_a10"]="mt7981|0|0,1" # CMCC A10
             ["cmcc_rax3000m"]="mt7981|0|0,1" # CMCC RAX3000M (SPI-NAND)
-            ["cmcc_rax3000m-emmc"]="mt7981|0|0,1" # CMCC RAX3000M (EMMC)
+            ["cmcc_rax3000m-emmc"]="mt7981|0|0" # CMCC RAX3000M (EMMC)
             ["h3c_magic-nx30-pro"]="mt7981|0|0,1" # H3C NX30 Pro
             ["ax3000t"]="mt7981|0,1|0,1" # 小米 AX3000T [with MULTI_LAYOUT]
             ["redmi_ax6000"]="mt7986|0,1|0,1" # 红米 AX6000 [with MULTI_LAYOUT]
             ["tplink_tl-xdr608x"]="mt7986|0|0,1" # TP-LINK XDR4288/6086/6088
             ["ruijie_rg-x60-pro"]="mt7986|0,1|0,1" # Ruijie RG-X60 Pro [with MULTI_LAYOUT]
-            ["jdcloud_re-cp-03"]="mt7986|0|0,1" # JDCloud RE-CP-03
-            ["glinet_gl-mt6000"]="mt7986|0|0,1" # GL.iNet GL-MT6000
+            ["jdcloud_re-cp-03"]="mt7986|0|0" # JDCloud RE-CP-03
+            ["glinet_gl-mt6000"]="mt7986|0|0" # GL.iNet GL-MT6000
             ["nokia_ea0326gmp"]="mt7981|0|1,0" # Nokia EA0326GMP with and without FIXED_MTDPARTS
             ["ruijie_rg-x30e"]="mt7981|0,1|0,1" # Ruijie RG-X30E [with MULTI_LAYOUT]
             ["ruijie_rg-x30e-pro"]="mt7981|0,1|0,1" # Ruijie RG-X30E Pro [with MULTI_LAYOUT]
@@ -294,11 +315,11 @@ jobs:
             ["honor_fur-602"]="mt7981|0,1|0,1" # HONOR FUR-602/603
             ["newland_nl-wr9103"]="mt7981|0,1|0,1" # Newland NL-WR9103 [with MULTI_LAYOUT]
             ["cmcc_xr30"]="mt7981|0|0,1" # CMCC XR30
-            ["cmcc_xr30-emmc"]="mt7981|0|0,1" # CMCC XR30 eMMC
+            ["cmcc_xr30-emmc"]="mt7981|0|0" # CMCC XR30 eMMC
             ["zyxel_ex5700"]="mt7986|0|0,1" # Zyxel EX5700
             ["openembed_som7981"]="mt7981|0|0,1" # OpenEmbed SOM7981
             ["glinet_gl-mt3000"]="mt7981|0|0,1" # GL.iNet GL-MT3000
-            ["glinet_gl-mt2500"]="mt7981|0|0,1" # GL.iNet GL-MT2500
+            ["glinet_gl-mt2500"]="mt7981|0|0" # GL.iNet GL-MT2500
             ["ax3000t_an8855"]="mt7981|0,1|0,1" # Xiaomi AX3000T AN8855 variant
             ["ruijie_rg-x60"]="mt7986|0,1|0,1" # Ruijie RG-X60 [with MULTI_LAYOUT]
             ["cudy_tr3000-v1"]="mt7981|0|0,1" # Cudy TR3000 v1
@@ -404,6 +425,22 @@ jobs:
 
           main "$@"
 
+      - name: Verify and checksum U-Boot artifacts
+        id: verify-artifacts
+        working-directory: ${{ env.PATH_output }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          images=(./*.bin)
+          if (( ${#images[@]} == 0 )); then
+            echo "::error::No U-Boot binary artifacts were produced." >&2
+            exit 1
+          fi
+          sha256sum "${images[@]}" > SHA256SUMS
+          sha256sum --check SHA256SUMS
+          printf 'Verified %d .bin artifacts.\n' "${#images[@]}"
+          echo "Binary images: ${#images[@]}" >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Generate release.md
         id: release-md
         working-directory: ${{ env.PATH_target }}
@@ -441,11 +478,15 @@ jobs:
           record_to_markdown "Repository" "- [x] ${REPO_target}"
           record_to_markdown "Repository Branch" "- [x] ${REPO_target_branch}"
           record_to_markdown "Target Revision" "- [x] ${{ steps.git-rev.outputs.git_desc }}"
+          record_to_markdown "Builder Commit" "- [x] ${{ github.sha }}"
+          record_to_markdown "Container" "- [x] ubuntu:26.04 (OpenSSL 3 compatibility)"
+          record_to_markdown "SHA-256" "$(cat "${PATH_output}/SHA256SUMS")" "text"
 
           cat "${MD_release}"
           printf 'timestamp=%s\n' "${release_timestamp}" >> "${GITHUB_OUTPUT}"
 
       - name: Upload to Release
+        if: ${{ env.publish_release == 'true' }}
         id: release
         uses: ncipollo/release-action@main
         env:
@@ -460,3 +501,14 @@ jobs:
           replacesArtifacts: true
           token: "${{ secrets.GITHUB_TOKEN }}"
           bodyFile: "${{ env.MD_release }}"
+
+      - name: Upload test artifacts
+        if: ${{ env.publish_release != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: uboot-test-${{ env.device_branch }}-${{ github.run_id }}
+          path: |
+            ${{ env.PATH_output }}/*.bin
+            ${{ env.PATH_output }}/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 1
