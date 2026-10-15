@@ -113,7 +113,7 @@ jobs:
             /tmp/uboot-gpt-upstream.tar.gz
             /tmp/uboot-gpt-upstream.tar.gz.sha256
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 1
   build:
     name: >-
       ${{ needs.runner-image.outputs.RUNNER_IMAGE }} -
@@ -393,4 +393,4 @@ jobs:
           name: uboot-gpt-${{ matrix.board }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.PATH_output }}/*.bin
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
