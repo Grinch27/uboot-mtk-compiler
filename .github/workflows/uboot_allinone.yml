@@ -160,7 +160,7 @@ jobs:
     name: >-
       ${{ needs.runner-image.outputs.RUNNER_IMAGE }} -
       gcc-${{ needs.toolchain.outputs.gcc_version }} -
-      ${{ inputs.device_branch || github.event.client_payload.device_branch || 'all' }}
+      ${{ github.event_name == 'push' && 'clt_r30b1' || inputs.device_branch || github.event.client_payload.device_branch || 'all' }}
     needs:
       - runner-image
       - toolchain
@@ -194,14 +194,11 @@ jobs:
       # ----- Repository -----
       REPO_target: "https://github.com/hanwckf/bl-mt798x"
       REPO_target_branch: "master"
-      REPO_self: "https://github.com/${{ github.repository }}"
-      REPO_self_branch: "main"
       # ----- Build Path -----
       PATH_build: "/builder"
       PATH_target: "/builder/target"
       PATH_output: "/builder/output"
       PATH_backup: "/builder/backup"
-      PATH_self: "/builder/self"
       MD_release: "/builder/release.md"
     steps:
       # ========== General Environment Setup: Start ==========
@@ -253,29 +250,6 @@ jobs:
         uses: Grinch27/github-actions/.github/actions/git-rev@main
         with:
           path_target: ${{ env.PATH_target }}
-
-      - name: Clone self
-        id: clone-self
-        working-directory: /
-        run: |
-          printf 'Current working directory: %s\n' "$(pwd)"
-
-          : "${REPO_self:?REPO_self is empty}"
-          : "${REPO_self_branch:?REPO_self_branch is empty}"
-          : "${PATH_self:?PATH_self is empty}"
-
-          rm -rf -- "${PATH_self}"
-          git clone \
-            --single-branch \
-            --depth=1 \
-            --branch="${REPO_self_branch}" \
-            "${REPO_self}" \
-            "${PATH_self}"
-
-          printf 'REPO_self: [ %s ]\nBRANCH: [ %s ]\n' \
-            "${REPO_self}" \
-            "${REPO_self_branch}"
-          df -hT "${PATH_build}"
 
       - name: Compile U-Boot Cycle
         id: compile
@@ -436,6 +410,12 @@ jobs:
             echo "::error::No U-Boot binary artifacts were produced." >&2
             exit 1
           fi
+          for image in "${images[@]}"; do
+            if [[ ! -s "${image}" ]]; then
+              echo "::error::U-Boot artifact is empty: ${image}" >&2
+              exit 1
+            fi
+          done
           sha256sum "${images[@]}" > SHA256SUMS
           sha256sum --check SHA256SUMS
           printf 'Verified %d .bin artifacts.\n' "${#images[@]}"
