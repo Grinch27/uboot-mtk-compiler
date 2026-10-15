@@ -87,6 +87,7 @@ defaults:
     shell: bash
 
 env:
+  CONTAINER_IMAGE: &container_image ubuntu:26.04
   DEBIAN_FRONTEND: noninteractive
   DEBCONF_NONINTERACTIVE_SEEN: "true"
   APT_LISTCHANGES_FRONTEND: none
@@ -114,17 +115,18 @@ jobs:
     runs-on: &step_image ubuntu-latest
     outputs:
       RUNNER_IMAGE: ${{ steps.resolve-runner-image.outputs.RUNNER_IMAGE }}
+      CONTAINER_IMAGE: ${{ env.CONTAINER_IMAGE }}
     steps:
       - name: Resolve runner-image
         id: resolve-runner-image
         uses: Grinch27/github-actions/.github/actions/resolve-runner-image@main
 
   toolchain:
-    name: ${{ needs.runner-image.outputs.RUNNER_IMAGE }} - ubuntu:26.04 - toolchain
+    name: ${{ needs.runner-image.outputs.RUNNER_IMAGE }} - ${{ needs.runner-image.outputs.CONTAINER_IMAGE }} - toolchain
     needs: runner-image
     runs-on: ${{ needs.runner-image.outputs.RUNNER_IMAGE }}
     container:
-      image: &container_image ubuntu:26.04
+      image: *container_image
       options: &container_options >-
         --privileged
         --user=0:0
