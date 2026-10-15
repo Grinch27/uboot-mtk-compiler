@@ -186,6 +186,9 @@ jobs:
         id: env-custom
         uses: Grinch27/github-actions/.github/actions/input-custom@main
 
+      - name: (Install) run_sudo
+        uses: Grinch27/github-actions/.github/actions/run-sudo@main
+
       - name: (Apt) Docker Needed for Actions
         id: fix-docker
         uses: Grinch27/github-actions/.github/actions/fix-indocker@main
