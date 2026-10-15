@@ -1,7 +1,7 @@
-name: U-Boot GPT (Static Device Matrix Trial)
+name: U-Boot GPT (97-Variant Matrix Trial)
 
 # Temporary trial workflow: production uboot_allinone.yml is not modified.
-# One matrix job per device, up to four concurrent jobs; no Releases.
+# 97 variant jobs; max-parallel 4; upstream cloned once; no Releases.
 on:
   push:
     branches:
@@ -10,7 +10,7 @@ on:
       - ".github/workflows/uboot_gpt.yml"
   workflow_dispatch:
 
-run-name: U-Boot GPT static matrix - ${{ github.event_name }} - all
+run-name: U-Boot GPT 97-variant matrix - ${{ github.event_name }} - all
 
 permissions: write-all
 
@@ -118,7 +118,7 @@ jobs:
     name: >-
       ${{ needs.runner-image.outputs.RUNNER_IMAGE }} -
       gcc-${{ needs.toolchain.outputs.gcc_version }} -
-      ${{ matrix.soc }}_${{ matrix.board }}
+      ${{ matrix.soc }}_${{ matrix.board }} - m${{ matrix.multi_layout }}-f${{ matrix.fixed_mtdparts }}
     needs:
       - runner-image
       - toolchain
@@ -128,158 +128,103 @@ jobs:
       max-parallel: 4
       matrix:
         include:
-        - board: 360t7
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: livinet_zr-3020
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: cetron_ct3003
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: jcg_q30
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: konka_komi-a31
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: wr30u
-          soc: mt7981
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: imou_lc-hx3001
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: clt_r30b1
-          soc: mt7981
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: abt_asr3000
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: cmcc_a10
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: cmcc_rax3000m
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: cmcc_rax3000m-emmc
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0"
-        - board: h3c_magic-nx30-pro
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: ax3000t
-          soc: mt7981
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: redmi_ax6000
-          soc: mt7986
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: tplink_tl-xdr608x
-          soc: mt7986
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: ruijie_rg-x60-pro
-          soc: mt7986
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: jdcloud_re-cp-03
-          soc: mt7986
-          multi_layout: "0"
-          fixed_mtdparts: "0"
-        - board: glinet_gl-mt6000
-          soc: mt7986
-          multi_layout: "0"
-          fixed_mtdparts: "0"
-        - board: nokia_ea0326gmp
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "1,0"
-        - board: ruijie_rg-x30e
-          soc: mt7981
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: ruijie_rg-x30e-pro
-          soc: mt7981
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: tplink_tl-xtr8488
-          soc: mt7986
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: newland_nl-wr8103
-          soc: mt7981
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: honor_fur-602
-          soc: mt7981
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: newland_nl-wr9103
-          soc: mt7981
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: cmcc_xr30
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: cmcc_xr30-emmc
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0"
-        - board: zyxel_ex5700
-          soc: mt7986
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: openembed_som7981
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: glinet_gl-mt3000
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: glinet_gl-mt2500
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0"
-        - board: ax3000t_an8855
-          soc: mt7981
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: ruijie_rg-x60
-          soc: mt7986
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
-        - board: cudy_tr3000-v1
-          soc: mt7981
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: netcore_n60
-          soc: mt7986
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: netcore_n60-pro
-          soc: mt7986
-          multi_layout: "0"
-          fixed_mtdparts: "0,1"
-        - board: ruijie_ew-6000gx-pro
-          soc: mt7986
-          multi_layout: "0,1"
-          fixed_mtdparts: "0,1"
+          - {board: 360t7, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: 360t7, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: livinet_zr-3020, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: livinet_zr-3020, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: cetron_ct3003, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: cetron_ct3003, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: jcg_q30, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: jcg_q30, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: konka_komi-a31, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: konka_komi-a31, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: wr30u, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: wr30u, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: wr30u, soc: mt7981, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: wr30u, soc: mt7981, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: imou_lc-hx3001, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: imou_lc-hx3001, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: clt_r30b1, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: clt_r30b1, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: clt_r30b1, soc: mt7981, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: clt_r30b1, soc: mt7981, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: abt_asr3000, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: abt_asr3000, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: cmcc_a10, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: cmcc_a10, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: cmcc_rax3000m, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: cmcc_rax3000m, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: cmcc_rax3000m-emmc, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: h3c_magic-nx30-pro, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: h3c_magic-nx30-pro, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ax3000t, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: ax3000t, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ax3000t, soc: mt7981, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: ax3000t, soc: mt7981, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: redmi_ax6000, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: redmi_ax6000, soc: mt7986, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: redmi_ax6000, soc: mt7986, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: redmi_ax6000, soc: mt7986, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: tplink_tl-xdr608x, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: tplink_tl-xdr608x, soc: mt7986, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ruijie_rg-x60-pro, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: ruijie_rg-x60-pro, soc: mt7986, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ruijie_rg-x60-pro, soc: mt7986, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: ruijie_rg-x60-pro, soc: mt7986, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: jdcloud_re-cp-03, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: glinet_gl-mt6000, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: nokia_ea0326gmp, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: nokia_ea0326gmp, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: ruijie_rg-x30e, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: ruijie_rg-x30e, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ruijie_rg-x30e, soc: mt7981, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: ruijie_rg-x30e, soc: mt7981, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: ruijie_rg-x30e-pro, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: ruijie_rg-x30e-pro, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ruijie_rg-x30e-pro, soc: mt7981, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: ruijie_rg-x30e-pro, soc: mt7981, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: tplink_tl-xtr8488, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: tplink_tl-xtr8488, soc: mt7986, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: newland_nl-wr8103, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: newland_nl-wr8103, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: newland_nl-wr8103, soc: mt7981, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: newland_nl-wr8103, soc: mt7981, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: honor_fur-602, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: honor_fur-602, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: honor_fur-602, soc: mt7981, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: honor_fur-602, soc: mt7981, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: newland_nl-wr9103, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: newland_nl-wr9103, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: newland_nl-wr9103, soc: mt7981, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: newland_nl-wr9103, soc: mt7981, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: cmcc_xr30, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: cmcc_xr30, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: cmcc_xr30-emmc, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: zyxel_ex5700, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: zyxel_ex5700, soc: mt7986, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: openembed_som7981, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: openembed_som7981, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: glinet_gl-mt3000, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: glinet_gl-mt3000, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: glinet_gl-mt2500, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: ax3000t_an8855, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: ax3000t_an8855, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ax3000t_an8855, soc: mt7981, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: ax3000t_an8855, soc: mt7981, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: ruijie_rg-x60, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: ruijie_rg-x60, soc: mt7986, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ruijie_rg-x60, soc: mt7986, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: ruijie_rg-x60, soc: mt7986, multi_layout: 1, fixed_mtdparts: 1}
+          - {board: cudy_tr3000-v1, soc: mt7981, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: cudy_tr3000-v1, soc: mt7981, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: netcore_n60, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: netcore_n60, soc: mt7986, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: netcore_n60-pro, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: netcore_n60-pro, soc: mt7986, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ruijie_ew-6000gx-pro, soc: mt7986, multi_layout: 0, fixed_mtdparts: 0}
+          - {board: ruijie_ew-6000gx-pro, soc: mt7986, multi_layout: 0, fixed_mtdparts: 1}
+          - {board: ruijie_ew-6000gx-pro, soc: mt7986, multi_layout: 1, fixed_mtdparts: 0}
+          - {board: ruijie_ew-6000gx-pro, soc: mt7986, multi_layout: 1, fixed_mtdparts: 1}
     container:
       image: *container_image
       options: *container_options
@@ -312,8 +257,6 @@ jobs:
       # ----- Build Path -----
       PATH_build: "/builder"
       PATH_target: "/builder/target"
-      PATH_output: "/builder/output"
-      PATH_backup: "/builder/backup"
     steps:
       - name: Load Custom Environment Variables
         id: env-custom
@@ -361,36 +304,19 @@ jobs:
           printf 'Upstream pinned to %s\n' "$actual_sha"
 
 
-      - name: Compile U-Boot for ${{ matrix.board }}
+      - name: Compile U-Boot
+        working-directory: ${{ env.PATH_target }}
         env:
-          BUILD_BOARD: ${{ matrix.board }}
-          BUILD_SOC: ${{ matrix.soc }}
-          MULTI_VALUES: ${{ matrix.multi_layout }}
-          FIXED_VALUES: ${{ matrix.fixed_mtdparts }}
-        working-directory: ${{ env.PATH_build }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$PATH_backup" "$PATH_output"
-          cp -a "$PATH_target" "$PATH_backup/"
-          IFS=',' read -r -a multi_values <<< "$MULTI_VALUES"
-          IFS=',' read -r -a fixed_values <<< "$FIXED_VALUES"
-          for multi in "${multi_values[@]}"; do
-            for fixed in "${fixed_values[@]}"; do
-              rm -rf -- "$PATH_target"
-              cp -a "$PATH_backup/$(basename "$PATH_target")" "$PATH_target"
-              (
-                cd "$PATH_target"
-                SOC="$BUILD_SOC" BOARD="$BUILD_BOARD" \
-                  MULTI_LAYOUT="$multi" FIXED_MTDPARTS="$fixed" ./build.sh
-                cp -f ./output/*.bin "$PATH_output/"
-              )
-            done
-          done
+          SOC: ${{ matrix.soc }}
+          BOARD: ${{ matrix.board }}
+          MULTI_LAYOUT: ${{ matrix.multi_layout }}
+          FIXED_MTDPARTS: ${{ matrix.fixed_mtdparts }}
+        run: ./build.sh
 
-      - name: Upload device artifacts
+      - name: Upload variant artifacts
         uses: actions/upload-artifact@main
         with:
-          name: uboot-gpt-${{ matrix.board }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.PATH_output }}/*.bin
+          name: uboot-gpt-${{ matrix.board }}-m${{ matrix.multi_layout }}-f${{ matrix.fixed_mtdparts }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.PATH_target }}/output/*.bin
           if-no-files-found: error
           retention-days: 1
