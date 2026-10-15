@@ -1,7 +1,7 @@
-name: U-Boot GPT (Grouped Matrix Trial)
+name: U-Boot GPT (Static Device Matrix Trial)
 
-# Temporary isolated candidate; production uboot_allinone.yml remains untouched.
-# Push to this file tests four representative boards; manual "all" tests all boards.
+# Temporary trial workflow: production uboot_allinone.yml is not modified.
+# One matrix job per device, up to four concurrent jobs; no Releases.
 on:
   push:
     branches:
@@ -9,14 +9,8 @@ on:
     paths:
       - ".github/workflows/uboot_gpt.yml"
   workflow_dispatch:
-    inputs:
-      device_branch:
-        description: "all, smoke, or exact board name"
-        required: true
-        default: "all"
-        type: string
 
-run-name: U-Boot GPT matrix - ${{ github.event_name }} - ${{ github.event_name == 'push' && 'smoke' || inputs.device_branch || 'all' }}
+run-name: U-Boot GPT static matrix - ${{ github.event_name }} - all
 
 permissions: write-all
 
@@ -38,48 +32,7 @@ env:
   GIT_TERMINAL_PROMPT: "0"
   DOCKER_BUILDKIT: "1"
   COMPOSE_DOCKER_CLI_BUILD: "1"
-  device_branch: "${{ github.event_name == 'push' && 'smoke' || inputs.device_branch || 'all' }}"
   custom_env: ""
-  # One authoritative device list for this trial workflow.
-  BOARD_CONFIG: |
-    360t7|mt7981|0|0,1
-    livinet_zr-3020|mt7981|0|0,1
-    cetron_ct3003|mt7981|0|0,1
-    jcg_q30|mt7981|0|0,1
-    konka_komi-a31|mt7981|0|0,1
-    wr30u|mt7981|0,1|0,1
-    imou_lc-hx3001|mt7981|0|0,1
-    clt_r30b1|mt7981|0,1|0,1
-    abt_asr3000|mt7981|0|0,1
-    cmcc_a10|mt7981|0|0,1
-    cmcc_rax3000m|mt7981|0|0,1
-    cmcc_rax3000m-emmc|mt7981|0|0
-    h3c_magic-nx30-pro|mt7981|0|0,1
-    ax3000t|mt7981|0,1|0,1
-    redmi_ax6000|mt7986|0,1|0,1
-    tplink_tl-xdr608x|mt7986|0|0,1
-    ruijie_rg-x60-pro|mt7986|0,1|0,1
-    jdcloud_re-cp-03|mt7986|0|0
-    glinet_gl-mt6000|mt7986|0|0
-    nokia_ea0326gmp|mt7981|0|1,0
-    ruijie_rg-x30e|mt7981|0,1|0,1
-    ruijie_rg-x30e-pro|mt7981|0,1|0,1
-    tplink_tl-xtr8488|mt7986|0|0,1
-    newland_nl-wr8103|mt7981|0,1|0,1
-    honor_fur-602|mt7981|0,1|0,1
-    newland_nl-wr9103|mt7981|0,1|0,1
-    cmcc_xr30|mt7981|0|0,1
-    cmcc_xr30-emmc|mt7981|0|0
-    zyxel_ex5700|mt7986|0|0,1
-    openembed_som7981|mt7981|0|0,1
-    glinet_gl-mt3000|mt7981|0|0,1
-    glinet_gl-mt2500|mt7981|0|0
-    ax3000t_an8855|mt7981|0,1|0,1
-    ruijie_rg-x60|mt7986|0,1|0,1
-    cudy_tr3000-v1|mt7981|0|0,1
-    netcore_n60|mt7986|0|0,1
-    netcore_n60-pro|mt7986|0|0,1
-    ruijie_ew-6000gx-pro|mt7986|0,1|0,1
 
 jobs:
   runner-image:
@@ -126,7 +79,6 @@ jobs:
       jdk_version: ${{ steps.resolve-toolchain.outputs.jdk_version }}
       custom_env: ${{ steps.resolve-toolchain.outputs.custom_env }}
       upstream_sha: ${{ steps.clone-upstream.outputs.upstream_sha }}
-      matrix: ${{ steps.prepare-matrix.outputs.matrix }}
     steps:
       - name: Resolve toolchain versions
         id: resolve-toolchain
@@ -153,70 +105,6 @@ jobs:
           (cd /tmp && sha256sum uboot-gpt-upstream.tar.gz > uboot-gpt-upstream.tar.gz.sha256)
           ls -lh /tmp/uboot-gpt-upstream.tar.gz
 
-      - name: Prepare matrix from board configuration
-        id: prepare-matrix
-        env:
-          REQUESTED_DEVICE: ${{ env.device_branch }}
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json
-          import os
-          import re
-
-          devices = {}
-          for line in os.environ["BOARD_CONFIG"].splitlines():
-              if not line.strip():
-                  continue
-              board, soc, multi, fixed = line.split("|")
-              if board in devices or not re.fullmatch(r"[a-zA-Z0-9_-]+", board):
-                  raise SystemExit(f"Invalid or duplicate board: {board}")
-              if soc not in ("mt7981", "mt7986"):
-                  raise SystemExit(f"Unsupported SoC: {soc}")
-              multi_values = [int(x) for x in multi.split(",")]
-              fixed_values = [int(x) for x in fixed.split(",")]
-              for values in (multi_values, fixed_values):
-                  if not values or len(values) != len(set(values)) or any(x not in (0, 1) for x in values):
-                      raise SystemExit(f"Invalid build parameters for {board}")
-              devices[board] = {"board": board, "soc": soc,
-                                "multi": multi_values, "fixed": fixed_values}
-
-          requested = os.environ["REQUESTED_DEVICE"].strip().lower()
-          smoke = ("clt_r30b1", "nokia_ea0326gmp", "glinet_gl-mt6000", "redmi_ax6000")
-          if requested == "all":
-              selected = list(devices.values())
-          elif requested == "smoke":
-              selected = [devices[board] for board in smoke]
-          elif requested in devices:
-              selected = [devices[requested]]
-          else:
-              raise SystemExit(f"Invalid device: {requested}")
-
-          def weight(board):
-              return len(board["multi"]) * len(board["fixed"])
-
-          groups = [{"group_id": f"g{i+1:02d}", "boards": [], "variant_count": 0}
-                    for i in range(min(4, len(selected)))]
-          for board in sorted(selected, key=lambda b: (-weight(b), b["board"])):
-              group = min(groups, key=lambda g: (g["variant_count"], len(g["boards"]), g["group_id"]))
-              group["boards"].append(board)
-              group["variant_count"] += weight(board)
-
-          matrix = {"include": [
-              {"group_id": group["group_id"], "variant_count": group["variant_count"],
-               "boards_json": json.dumps(group["boards"], separators=(",", ":"))}
-              for group in sorted(groups, key=lambda g: g["group_id"])
-          ]}
-          expected = sum(map(weight, selected))
-          if expected != sum(g["variant_count"] for g in groups):
-              raise SystemExit("Matrix coverage mismatch")
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
-              f.write("matrix=" + json.dumps(matrix, separators=(",", ":")) + "\n")
-          print(f"Selected {len(selected)} boards, {expected} variants, {len(groups)} groups")
-          for group in groups:
-              print(f'{group["group_id"]}: {len(group["boards"])} boards, {group["variant_count"]} variants')
-          PY
-
       - name: Upload shared upstream snapshot
         uses: actions/upload-artifact@main
         with:
@@ -230,7 +118,7 @@ jobs:
     name: >-
       ${{ needs.runner-image.outputs.RUNNER_IMAGE }} -
       gcc-${{ needs.toolchain.outputs.gcc_version }} -
-      ${{ matrix.group_id }} (${{ matrix.variant_count }} variants)
+      ${{ matrix.soc }}_${{ matrix.board }}
     needs:
       - runner-image
       - toolchain
@@ -238,7 +126,160 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 4
-      matrix: ${{ fromJSON(needs.toolchain.outputs.matrix) }}
+      matrix:
+        include:
+        - board: 360t7
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: livinet_zr-3020
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: cetron_ct3003
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: jcg_q30
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: konka_komi-a31
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: wr30u
+          soc: mt7981
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: imou_lc-hx3001
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: clt_r30b1
+          soc: mt7981
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: abt_asr3000
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: cmcc_a10
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: cmcc_rax3000m
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: cmcc_rax3000m-emmc
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0"
+        - board: h3c_magic-nx30-pro
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: ax3000t
+          soc: mt7981
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: redmi_ax6000
+          soc: mt7986
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: tplink_tl-xdr608x
+          soc: mt7986
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: ruijie_rg-x60-pro
+          soc: mt7986
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: jdcloud_re-cp-03
+          soc: mt7986
+          multi_layout: "0"
+          fixed_mtdparts: "0"
+        - board: glinet_gl-mt6000
+          soc: mt7986
+          multi_layout: "0"
+          fixed_mtdparts: "0"
+        - board: nokia_ea0326gmp
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "1,0"
+        - board: ruijie_rg-x30e
+          soc: mt7981
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: ruijie_rg-x30e-pro
+          soc: mt7981
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: tplink_tl-xtr8488
+          soc: mt7986
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: newland_nl-wr8103
+          soc: mt7981
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: honor_fur-602
+          soc: mt7981
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: newland_nl-wr9103
+          soc: mt7981
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: cmcc_xr30
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: cmcc_xr30-emmc
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0"
+        - board: zyxel_ex5700
+          soc: mt7986
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: openembed_som7981
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: glinet_gl-mt3000
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: glinet_gl-mt2500
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0"
+        - board: ax3000t_an8855
+          soc: mt7981
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: ruijie_rg-x60
+          soc: mt7986
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
+        - board: cudy_tr3000-v1
+          soc: mt7981
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: netcore_n60
+          soc: mt7986
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: netcore_n60-pro
+          soc: mt7986
+          multi_layout: "0"
+          fixed_mtdparts: "0,1"
+        - board: ruijie_ew-6000gx-pro
+          soc: mt7986
+          multi_layout: "0,1"
+          fixed_mtdparts: "0,1"
     container:
       image: *container_image
       options: *container_options
@@ -273,7 +314,6 @@ jobs:
       PATH_target: "/builder/target"
       PATH_output: "/builder/output"
       PATH_backup: "/builder/backup"
-      MD_release: "/builder/release.md"
     steps:
       - name: Load Custom Environment Variables
         id: env-custom
@@ -320,199 +360,37 @@ jobs:
           command -v aarch64-linux-gnu-gcc
           printf 'Upstream pinned to %s\n' "$actual_sha"
 
-      - name: Compile U-Boot Cycle
-        id: compile
+
+      - name: Compile U-Boot for ${{ matrix.board }}
         env:
-          BOARD_PLAN_JSON: ${{ matrix.boards_json }}
-          EXPECTED_VARIANTS: ${{ matrix.variant_count }}
+          BUILD_BOARD: ${{ matrix.board }}
+          BUILD_SOC: ${{ matrix.soc }}
+          MULTI_VALUES: ${{ matrix.multi_layout }}
+          FIXED_VALUES: ${{ matrix.fixed_mtdparts }}
         working-directory: ${{ env.PATH_build }}
         run: |
           set -euo pipefail
-          printf 'Current working directory: %s\n' "$(pwd)"
-
-          backup_repo() {
-            local original_dir="${PWD}"
-            local backup_target="${PATH_backup}/$(basename "${PATH_target}")"
-
-            printf 'Backup path: %s\n' "${backup_target}"
-            mkdir -p "${PATH_backup}"
-            rm -rf -- "${backup_target}"
-            cp -a "${PATH_target}" "${PATH_backup}/"
-            ls -al "${PATH_backup}"
-            cd "${original_dir}"
-          }
-
-          compile_device() {
-            local selected_device="$1"
-            local params="$2"
-            local -a parsed_params
-
-            IFS='|' read -r -a parsed_params <<< "${params}"
-            split_device_params \
-              "${selected_device}" \
-              "${parsed_params[0]}" \
-              "${parsed_params[@]:1}"
-          }
-
-          split_device_params() {
-            local board="$1"
-            local soc="$2"
-            local -a other_params=("${@:3}")
-            local multi_layout_values="${other_params[0]:-0}"
-            local fixed_mtdparts_values="${other_params[1]:-0}"
-            local -a multi_layout_array
-            local -a fixed_mtdparts_array
-
-            IFS=',' read -r -a multi_layout_array <<< "${multi_layout_values}"
-            IFS=',' read -r -a fixed_mtdparts_array <<< "${fixed_mtdparts_values}"
-
-            for multi_layout in "${multi_layout_array[@]}"; do
-              for fixed_mtdparts in "${fixed_mtdparts_array[@]}"; do
-                cd "${PATH_build}"
-                rm -rf -- "${PATH_target}"
-                cp -a \
-                  "${PATH_backup}/$(basename "${PATH_target}")" \
-                  "${PATH_build}/"
-                cd "${PATH_target}"
-                exec_build_sh \
-                  "${soc}" \
-                  "${board}" \
-                  "${multi_layout}" \
-                  "${fixed_mtdparts}"
-              done
+          mkdir -p "$PATH_backup" "$PATH_output"
+          cp -a "$PATH_target" "$PATH_backup/"
+          IFS=',' read -r -a multi_values <<< "$MULTI_VALUES"
+          IFS=',' read -r -a fixed_values <<< "$FIXED_VALUES"
+          for multi in "${multi_values[@]}"; do
+            for fixed in "${fixed_values[@]}"; do
+              rm -rf -- "$PATH_target"
+              cp -a "$PATH_backup/$(basename "$PATH_target")" "$PATH_target"
+              (
+                cd "$PATH_target"
+                SOC="$BUILD_SOC" BOARD="$BUILD_BOARD" \
+                  MULTI_LAYOUT="$multi" FIXED_MTDPARTS="$fixed" ./build.sh
+                cp -f ./output/*.bin "$PATH_output/"
+              )
             done
-          }
-
-          exec_build_sh() {
-            local soc="$1"
-            local board="$2"
-            local multi_layout="$3"
-            local fixed_mtdparts="$4"
-
-            printf 'Current working directory: %s\n' "$(pwd)"
-            printf '%s\n' "---------- Compile U-Boot of ${board} ----------"
-            SOC="${soc}" \
-              BOARD="${board}" \
-              MULTI_LAYOUT="${multi_layout}" \
-              FIXED_MTDPARTS="${fixed_mtdparts}" \
-              ./build.sh
-
-            shopt -s nullglob
-            local -a output_files=(./output/*)
-            if ((${#output_files[@]} == 0)); then
-              printf 'No output files generated for %s.\n' "${board}" >&2
-              return 1
-            fi
-            local source_file destination_file
-            for source_file in "${output_files[@]}"; do
-              destination_file="$PATH_output/$(basename "$source_file")"
-              if [[ -e "$destination_file" ]]; then
-                cmp -s "$source_file" "$destination_file" || {
-                  echo "::error::Conflicting artifact name: $destination_file" >&2
-                  return 1
-                }
-              else
-                cp -a -- "$source_file" "$destination_file"
-              fi
-            done
-          }
-
-
-          main() {
-            : "${BOARD_PLAN_JSON:?Missing grouped board plan}"
-            mkdir -p "$PATH_output"
-            backup_repo
-            python3 - <<'PY' > /tmp/uboot-gpt-build-plan.txt
-          import json
-          import os
-          items = json.loads(os.environ["BOARD_PLAN_JSON"])
-          if not items:
-              raise SystemExit("Empty build group")
-          for item in items:
-              board = item["board"]
-              soc = item["soc"]
-              multi = ",".join(str(v) for v in item["multi"])
-              fixed = ",".join(str(v) for v in item["fixed"])
-              print("|".join((board, soc, multi, fixed)))
-          PY
-
-            local variant_count=0
-            while IFS='|' read -r board soc multi fixed; do
-              [[ -n "$board" && -n "$soc" ]]
-              compile_device "$board" "$soc|$multi|$fixed"
-              IFS=',' read -r -a multi_values <<< "$multi"
-              IFS=',' read -r -a fixed_values <<< "$fixed"
-              variant_count=$((variant_count + ${#multi_values[@]} * ${#fixed_values[@]}))
-            done < /tmp/uboot-gpt-build-plan.txt
-            if (( variant_count != EXPECTED_VARIANTS )); then
-              echo "::error::Expected $EXPECTED_VARIANTS variants; got $variant_count" >&2
-              return 1
-            fi
-            echo "Completed $variant_count grouped U-Boot variants"
-          }
-
-          main "$@"
-
-      - name: Verify and checksum U-Boot artifacts
-        id: verify-artifacts
-        working-directory: ${{ env.PATH_output }}
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          images=(./*.bin)
-          if (( ${#images[@]} == 0 )); then
-            echo "::error::No U-Boot binary artifacts were produced." >&2
-            exit 1
-          fi
-          for image in "${images[@]}"; do
-            if [[ ! -s "${image}" ]]; then
-              echo "::error::U-Boot artifact is empty: ${image}" >&2
-              exit 1
-            fi
           done
-          sha256sum "${images[@]}" > SHA256SUMS
-          sha256sum --check SHA256SUMS
-          printf 'Verified %d .bin artifacts.\n' "${#images[@]}"
-          echo "Binary images: ${#images[@]}" >> "${GITHUB_STEP_SUMMARY}"
 
-
-      - name: Create this group's manifest
-        env:
-          GROUP_ID: ${{ matrix.group_id }}
-          UPSTREAM_SHA: ${{ needs.toolchain.outputs.upstream_sha }}
-          GCC_VERSION: ${{ needs.toolchain.outputs.gcc_version }}
-        working-directory: ${{ env.PATH_output }}
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          from pathlib import Path
-          files = sorted(Path(".").glob("*.bin"))
-          manifest = {
-              "group": os.environ["GROUP_ID"],
-              "upstream_sha": os.environ["UPSTREAM_SHA"],
-              "workflow_sha": os.environ["GITHUB_SHA"],
-              "gcc_version": os.environ["GCC_VERSION"],
-              "container": "ubuntu:26.04",
-              "images": [
-                  {"name": p.name, "size": p.stat().st_size,
-                   "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
-                  for p in files
-              ]
-          }
-          Path("manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-          PY
-
-      - name: Upload this group's artifacts
-        if: ${{ always() }}
+      - name: Upload device artifacts
         uses: actions/upload-artifact@main
         with:
-          name: uboot-gpt-${{ matrix.group_id }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ env.PATH_output }}/*.bin
-            ${{ env.PATH_output }}/SHA256SUMS
-            ${{ env.PATH_output }}/manifest.json
-          if-no-files-found: warn
+          name: uboot-gpt-${{ matrix.board }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.PATH_output }}/*.bin
+          if-no-files-found: error
           retention-days: 7
