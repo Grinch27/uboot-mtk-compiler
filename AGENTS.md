@@ -7,9 +7,11 @@ Part II: repository-specific instructions. Existing content, if present, is pres
 This deployment changes only AGENTS.md; it does not constitute approval for workflow or source modification.
 -->
 
-# Part I — GitHub Actions 通用规范（新增）
+# Part I — GitHub Actions 通用规范（统一维护）
 
 <!-- BEGIN: NEW WORKFLOW RULES -->
+<!-- COMMON_RULES_VERSION: 1.0.0 -->
+<!-- COMMON_RULES_SOURCE: Grinch27/github-actions/docs/agents/part-i.md -->
 
 ## 1. 适用范围与基本原则
 
@@ -33,7 +35,7 @@ This deployment changes only AGENTS.md; it does not constitute approval for work
 本文件分为两部分：
 
 - Part I：通用 GitHub Actions 工作流规范。
-- Part II：U-Boot MTK Compiler 项目专属约束。
+- Part II：各仓库独立维护的项目专属约束（不参与同步）。
 
 两部分相互独立，但在实际执行时共同生效。
 
@@ -49,7 +51,7 @@ This deployment changes only AGENTS.md; it does not constitute approval for work
 
 参考文件：
 
-[Grinch27/openwrt-compiler/.github/workflows/build-openwrt.yml](https://github.com/Grinch27/openwrt-compiler/blob/main/.github/workflows/build-openwrt.yml)（跨仓库基础路线参考）
+[Grinch27/openwrt-compiler/build-openwrt.yml](https://github.com/Grinch27/openwrt-compiler/blob/main/.github/workflows/build-openwrt.yml)（跨仓库基础路线参考）
 
 所有新项目原则上先使用 Non-container 构建路线。
 
@@ -72,7 +74,7 @@ Non-container 是项目最初的开发和调试路线。
 
 参考文件：
 
-`.github/workflows/uboot_allinone.yml`（本仓库现有正式工作流）
+[Grinch27/uboot-mtk-compiler/uboot_allinone.yml](https://github.com/Grinch27/uboot-mtk-compiler/blob/main/.github/workflows/uboot_allinone.yml)（跨仓库 Container 路线参考）
 
 重点参考该文件的前 200 行。
 
@@ -469,7 +471,7 @@ https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workf
 
 本规范仅定义工作流设计与执行边界；是否实际修改或部署由具体任务授权决定。
 
-未经本次任务明确授权，不自动执行：
+未经当前任务明确授权，不自动执行：
 
 - 工作流重构。
 - Non-container 路线补建。
