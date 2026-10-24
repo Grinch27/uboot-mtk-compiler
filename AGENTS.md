@@ -10,7 +10,7 @@ This deployment changes only AGENTS.md; it does not constitute approval for work
 # Part I — GitHub Actions 通用规范（统一维护）
 
 <!-- BEGIN: NEW WORKFLOW RULES -->
-<!-- COMMON_RULES_VERSION: 1.1.0 -->
+<!-- COMMON_RULES_VERSION: 1.2.0 -->
 <!-- COMMON_RULES_SOURCE: Grinch27/github-actions/docs/agents/part-i.md -->
 
 ## 1. 适用范围与基本原则
@@ -444,6 +444,17 @@ YAML Anchors 应用于消除真正重复的配置，不得损害可读性或兼�
 ### 5.6 Excel 文件处理
 
 使用 pandas 读取与分析 Excel，openpyxl 编辑现有工作簿，XlsxWriter 生成新文件；避免 Blob、原始字节或手工 ZIP/XML 读写，核对公式、格式与数据类型。
+
+### 5.7 Shell / Bash 代码规范
+
+参考 [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)，遵循以下规范：
+
+- **函数与变量**：函数使用 `snake_case()`；通过 `local` 声明局部变量并设置默认值。
+- **参数传递**：优先使用短、长命名参数（`-x|--long`），通过 `while` + `case` 解析；带值参数使用 `$2` 接收，并通过 `shift 2` 跳过已处理的参数。
+- **输入处理**：信任调用方输入，不添加冗余参数校验或错误提示；遇到未知参数直接 `break`，结束参数解析。
+- **变量与命令**：变量展开使用双引号，参数透传使用 `"$@"`，命令替换使用 `$(...)`；`local` 声明与命令替换赋值分开，避免掩盖退出状态。
+- **格式与兼容性**：新 Bash 代码采用两空格缩进，优先使用 `[[ ]]`；修改现有代码时保持原有风格。区分 Bash 与 POSIX `sh/ash`，避免使用目标 Shell 不支持的语法。
+- **验证**：按需执行 Shell 语法检查、ShellCheck 和必要的回归测试。
 
 ---
 
