@@ -10,7 +10,7 @@ This deployment changes only AGENTS.md; it does not constitute approval for work
 # Part I — GitHub Actions 通用规范（统一维护）
 
 <!-- BEGIN: NEW WORKFLOW RULES -->
-<!-- COMMON_RULES_VERSION: 1.0.0 -->
+<!-- COMMON_RULES_VERSION: 1.1.0 -->
 <!-- COMMON_RULES_SOURCE: Grinch27/github-actions/docs/agents/part-i.md -->
 
 ## 1. 适用范围与基本原则
@@ -440,6 +440,10 @@ YAML Anchors 应用于消除真正重复的配置，不得损害可读性或兼�
 不得仅因为参考工作流使用 `write-all`，便擅自扩大其他项目的工作流权限。
 
 现有已授权权限不因本次规范制定而自动改变。
+
+### 5.6 Excel 文件处理
+
+使用 pandas 读取与分析 Excel，openpyxl 编辑现有工作簿，XlsxWriter 生成新文件；避免 Blob、原始字节或手工 ZIP/XML 读写，核对公式、格式与数据类型。
 
 ---
 
